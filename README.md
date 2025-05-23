@@ -5,8 +5,6 @@
 ### **Help train the next generation of AI by sharing your gameplay!**
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![GitHub Stars](https://img.shields.io/github/stars/OpenWorld-Labs/owl_control?style=social)](https://github.com/OpenWorld-Labs/owl_control)
-[![Downloads](https://img.shields.io/github/downloads/OpenWorld-Labs/owl_control/total)](https://github.com/OpenWorld-Labs/owl_control/releases)
 
 <p align="center">
   <strong>OWL Control</strong> is a desktop application that records gameplay footage and input data from video games<br/>
