@@ -42,7 +42,7 @@ OWL Control automatically records your gameplay sessions (video + keyboard/mouse
 </tr>
 <tr>
 <td align="center">3️⃣</td>
-<td><strong>Create an account</strong> or enter your API key</td>
+<td><strong>Create an account</strong> or enter your <a href="https://openworldlabs.ai/dashboard">API key</a></td>
 </tr>
 <tr>
 <td align="center">4️⃣</td>
