@@ -19,7 +19,15 @@ ROOT_DIR = "./data_dump/games/" # User should be able to set this, but we will n
 POLLS_PER_FRAME=20 # Hard coded
 
 GAME_LIST = [
-    'doomthedarkages',
     'DOOMEternalx64vk',
-    'blackopscoldwar'
+    'DOOMx64',
+    'FactoryGame',
+    'Titanfall2',
+    'SkyrimSE',
+    'TESV',
+    'Crysis3','Crysis3_x64','Crysis2','Crysis2_x64',
+    'OblivionRemastered',
+    'MCC-Win64-Shipping',
+    'farcry3', 'fc3', 'farcry4', 'farcry5', 'fc3_blooddragon',
+    'Cyberpunk2077'
 ]
