@@ -87,11 +87,37 @@ OWL Control automatically records your gameplay sessions (video + keyboard/mouse
 
 ## 🎯 Supported Games
 
-> OWL Control automatically detects and records from a curated list of single-player games. The app will notify you when it detects a supported game.
+OWL Control automatically detects and records from the following curated list of single-player games. The app will notify you when it detects a supported game.
+- Doom Eternal
+- Doom (2016)
+- Cyberpunk 2077
+- Satisfactory
+- Crysis 3
+- Titanfall 2
+- Skyrim
+- Oblivion Remastered
 
-<div align="center">
-  <em>🎮 Supporting popular single-player titles across all genres 🎮</em>
-</div>
+More games will be added in the future.
+
+## 💻 System Requirements
+
+- Any system capable of running your game and OBS
+- 10-20GB of free storage space for recordings
+- Low bandwidth internet connection (videos are compressed before upload)
+
+## ⚙️ Upload Settings
+
+OWL Control offers flexible upload scheduling:
+
+- Automatic daily uploads at midnight
+- Manual uploads when you open the application
+- Configurable through the settings menu
+
+## 📦 Data Collection
+
+OWL Control only records gameplay footage and keyboard/mouse inputs. No microphone audio is recorded.
+
+Game audio is currently not recorded, but this may change in the future. Any such changes will be announced.
 
 ## ⌨️ Controls
 
@@ -189,7 +215,7 @@ Currently only Windows is supported, although we'll be adding more platforms in 
 
 <div align="center">
   <br>
-  <strong>🦉 OWL Control</strong> is a project by <a href="https://openworldlabs.com">Open World Labs</a>
+  <strong>🦉 OWL Control</strong> is a project by <a href="https://openworldlabs.ai">Open World Labs</a>
   <br>
   <em>Building open datasets for AI research</em>
   <br><br>
