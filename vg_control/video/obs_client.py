@@ -79,8 +79,8 @@ class OBSClient:
             1,
             monitor_width,
             monitor_height,
-            512,
-            512
+            1920,
+            1080,
         )
 
         profile_list = self.req_client.get_profile_list()
