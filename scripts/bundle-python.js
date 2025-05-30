@@ -10,13 +10,7 @@ if (!fs.existsSync(pythonDistDir)) {
 }
 
 console.log('Installing Python dependencies...');
-try {
-  // Install dependencies using pip
-  execSync('pip install -r requirements.txt', { stdio: 'inherit' });
-} catch (error) {
-  console.log('No requirements.txt found, trying poetry...');
-  execSync('poetry install --no-dev', { stdio: 'inherit' });
-}
+execSync('uv sync', { stdio: 'inherit' });
 
 console.log('Creating PyInstaller spec file...');
 const specContent = `# -*- mode: python ; coding: utf-8 -*-
@@ -99,7 +93,7 @@ coll = COLLECT(
 fs.writeFileSync(path.join(__dirname, '..', 'vg_control.spec'), specContent);
 
 console.log('Building Python executable with PyInstaller...');
-execSync('pyinstaller vg_control.spec --distpath python-dist --workpath build/pyinstaller --clean -y', { 
+execSync('uv run pyinstaller vg_control.spec --distpath python-dist --workpath build/pyinstaller --clean -y', { 
   stdio: 'inherit',
   cwd: path.join(__dirname, '..')
 });

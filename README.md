@@ -173,7 +173,7 @@ cd owl_control
 
 # Install dependencies
 npm install
-pip install -r requirements.txt
+uv sync
 
 # Build the application
 npm run build

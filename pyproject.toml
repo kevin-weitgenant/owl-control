@@ -1,35 +1,43 @@
-[tool.poetry]
+[project]
 name = "vg-control"
 version = "1.0.0"
 description = "Video game control input tracking application"
-authors = ["Open World Labs"]
+authors = [{ name = "Open World Labs" }]
+requires-python = ">=3.12,<3.13"
 readme = "README.md"
-packages = [{include = "vg_control"}]
+dependencies = [
+    "pynput>=1.7.6,<2",
+    "python-dotenv>=1.0.0,<2",
+    "pywin32>=306,<307 ; sys_platform == 'win32'",
+    "numpy>=2.0.0,<3",
+    "opencv-python>=4.10.0,<5",
+]
 
-[tool.poetry.dependencies]
-python = "^3.8"
-pynput = "^1.7.6"
-python-dotenv = "^1.0.0"
-pywin32 = {version = "^306", markers = "sys_platform == 'win32'"}
-numpy = "^2.0.0"
-opencv-python = "^4.10.0"
+[dependency-groups]
+dev = [
+    "pytest>=7.4.0,<8",
+    "black>=23.7.0,<24",
+    "flake8>=6.1.0,<7",
+    "mypy>=1.5.0,<2",
+    "pyinstaller>=6.13.0",
+]
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.4.0"
-black = "^23.7.0"
-flake8 = "^6.1.0"
-mypy = "^1.5.0"
+[tool.hatch.build.targets.sdist]
+include = ["vg_control"]
+
+[tool.hatch.build.targets.wheel]
+include = ["vg_control"]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.black]
 line-length = 120
-target-version = ['py38']
+target-version = ['py312']
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

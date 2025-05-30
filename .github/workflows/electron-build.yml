@@ -26,11 +26,8 @@ jobs:
           node-version: 18
           cache: 'npm'
           
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v6
           
       - name: Install System Dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
@@ -40,8 +37,7 @@ jobs:
           
       - name: Install Python Dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          uv sync
           
       - name: Download VC++ Redistributable (Windows only)
         if: matrix.os == 'windows-latest'
