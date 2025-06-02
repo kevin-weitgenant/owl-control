@@ -8,6 +8,8 @@ from .recorder import SimpleRecorder, main as recorder_main
 from .input_tracking.rawinputlib import HotkeyManager, InputData, KeyboardData, RawInputReader, open_raw_input_dll
 from .input_tracking.keybinds import CODE_TO_KEY
 
+logger = logging.getLogger(__name__)
+
 class RecorderBridge:
     def __init__(self, start_key, stop_key, raw_input: RawInputReader):
         self.recorder = SimpleRecorder()
@@ -55,7 +57,7 @@ async def bridge_main():
     stop_key = args.stop_key
     
     # Print detected keys
-    print(f"Recording bridge using hotkeys: Start={start_key}, Stop={stop_key}")
+    logger.info(f"Recording bridge using hotkeys: Start={start_key}, Stop={stop_key}")
     sys.stdout.flush()
     
     with open_raw_input_dll() as rawinput_lib:

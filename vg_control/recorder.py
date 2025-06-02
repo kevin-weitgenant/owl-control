@@ -8,6 +8,7 @@ import win32process
 import psutil
 import warnings
 import uuid
+import logging
 from typing import Optional
 
 from .input_tracking.writer import DataWriterClient
@@ -21,6 +22,8 @@ from .constants import (
 from .input_tracking.rawinputlib import (
     HotkeyManager
 )
+
+logger = logging.getLogger(__name__)
 
 class SimpleRecorder:
     def __init__(self):
@@ -44,9 +47,11 @@ class SimpleRecorder:
 
     async def detect_idleing(self):
         await self.wait_until_idle(INACTIVITY_TIME)
+        logger.info("No user input detected for a while, stopping recording...")
         await self.stop_recording(cancel_idle_task=False)
         # Wait until further input then go again
         await self._saw_user_input_event.wait()
+        logger.info("User input detected, restarting recording...")
         await self.start_recording()
     
     async def wait_until_idle(self, timeout: float):
@@ -95,18 +100,23 @@ class SimpleRecorder:
     
     async def stop_after_time(self):
         await asyncio.sleep(MAX_FOOTAGE)
+        logger.info("Maximum recording time reached, stopping and starting recording...")
         await self.stop_recording(cancel_timer_task=False)
         await self.start_recording()
 
     async def start_recording(self):
         if self.is_recording:
+            logger.debug("Asked to start recording, but already recording.")
             return
+        
+        logger.info("Starting recording...")
 
         proc, is_fullscreen = self._get_game_process()
         if not proc:
+            logger.warning("No game process found. Recording not started.")
             return
         if not is_fullscreen:
-            warnings.warn("Game not fullscreen. Recording not started.")
+            logger.warning("Game not fullscreen. Recording not started.")
             return
 
         self.game_pid = proc.pid
@@ -150,7 +160,10 @@ class SimpleRecorder:
 
     async def stop_recording(self, cancel_gr_task = True, cancel_timer_task = True, cancel_idle_task = True):
         if not self.is_recording:
+            logger.debug("Asked to stop recording, but not currently recording.")
             return
+        
+        logger.info("Stopping recording...")
         
         if cancel_gr_task and self.game_running_task is not None:
             self.game_running_task.cancel()
@@ -175,8 +188,8 @@ class SimpleRecorder:
             try:
                 with open(os.path.join(self.recording_dir, '.invalid'), 'w') as f:
                     pass
-            except:
-                print("Failed to mark directory as uploaded/invalid")
+            except Exception:
+                logger.exception("Failed to mark directory as uploaded/invalid")
 
         self.obs_client = None
         self.game_pid = None
