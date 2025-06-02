@@ -126,7 +126,10 @@ class SimpleRecorder:
         game_dir = os.path.join(ROOT_DIR, self.game_name.split('.')[0])
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.recording_dir = os.path.join(game_dir, timestamp)
+        logger.info(f"Recording directory at {self.recording_dir}")
+        logger.debug("Making sure recording directory exists")
         os.makedirs(self.recording_dir, exist_ok=True)
+        logger.debug(f"Recording directory exists")
 
         # Initialize clients
         obs_path = os.path.abspath(self.recording_dir).replace('\\', '/')

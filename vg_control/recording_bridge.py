@@ -28,6 +28,7 @@ class RecorderBridge:
             
             await self.raw_input.run(1. / FPS / POLLS_PER_FRAME, self.recv_input)
         except Exception as e:
+            logger.exception("Error in RecorderBridge run loop")
             print(json.dumps({"status": "error", "error": str(e)}))
             sys.stdout.flush()
     

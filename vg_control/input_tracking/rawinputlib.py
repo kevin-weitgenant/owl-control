@@ -160,7 +160,10 @@ class HotkeyManager:
 
     async def on_keypress(self, keyboard_data: KeyboardData):
         if keyboard_data.down and keyboard_data.keyCode in self.callbacks:
-            await self.call(keyboard_data.keyCode)
+            try:
+                await self.call(keyboard_data.keyCode)
+            except Exception as e:
+                raise RuntimeError(f"Error calling hotkey callback for keycode {keyboard_data.keyCode}") from e
 
     async def call(self, keycode):
         await self.callbacks[keycode]()
@@ -171,5 +174,5 @@ class HotkeyManager:
             try:
                 keycode = {k for k,v in CODE_TO_KEY.items() if v == keycode}.pop()
             except:
-                raise ValueError("Key {keycode} not supported by hotkey manager.")
+                raise ValueError(f"Key {keycode} not supported by hotkey manager.")
         self.callbacks[keycode] = fn
