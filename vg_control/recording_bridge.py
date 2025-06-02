@@ -1,6 +1,7 @@
 import asyncio
 import json
 import sys
+import logging
 
 from vg_control.constants import FPS, POLLS_PER_FRAME
 from .recorder import SimpleRecorder, main as recorder_main
@@ -34,9 +35,13 @@ class RecorderBridge:
         self.recorder.saw_user_input()
         self.recorder.client.writer.tracker.recv_input(input)
         
+def init_logger():
+    logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
 async def bridge_main():
     import argparse
+
+    init_logger()
     
     # Set up argument parser
     parser = argparse.ArgumentParser(description='Recording Bridge')
