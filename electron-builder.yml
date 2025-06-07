@@ -28,18 +28,6 @@ extraResources:
       - "!**/*.pyc"
   - from: rawinputlib.dll
     to: rawinputlib.dll
-  - from: python-dist
-    to: python-dist
-    filter:
-      - "**/*"
-
-mac:
-  category: public.app-category.utilities
-  target:
-    - dmg
-    - zip
-  hardenedRuntime: true
-  gatekeeperAssess: false
 
 win:
   target:
@@ -56,17 +44,6 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: OWL Control
-
-linux:
-  target:
-    - AppImage
-    - deb
-  category: Utility
-  icon: src/assets
-  desktop:
-    Name: OWL Control
-    Comment: Video game control input tracking application
-    Categories: Utility
 
 publish:
   - provider: github

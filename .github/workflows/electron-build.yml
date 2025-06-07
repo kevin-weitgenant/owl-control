@@ -49,9 +49,6 @@ jobs:
       - name: Install Dependencies
         run: npm ci
         
-      - name: Bundle Python with PyInstaller
-        run: node scripts/bundle-python.js
-        
       - name: Build Webpack
         run: npm run build
         
