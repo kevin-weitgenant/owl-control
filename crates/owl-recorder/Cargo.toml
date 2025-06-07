@@ -1,0 +1,12 @@
+[package]
+name = "owl-recorder"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+gstreamer.workspace = true
+tokio.workspace = true
+color-eyre.workspace = true
