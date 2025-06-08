@@ -9,6 +9,7 @@ python-dist/*
 data_dump
 
 build-resources/vc_redist.x64.exe
+build-resources/gstreamer-1.0-msvc-x86_64.msi
 
 ### Python
 # Byte-compiled / optimized / DLL files
