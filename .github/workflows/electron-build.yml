@@ -41,10 +41,7 @@ jobs:
           
       - name: Download VC++ Redistributable (Windows only)
         if: matrix.os == 'windows-latest'
-        run: |
-          if (!(Test-Path -Path build-resources)) { New-Item -ItemType Directory -Path build-resources }
-          curl -L -o build-resources/vc_redist.x64.exe https://aka.ms/vs/17/release/vc_redist.x64.exe
-        shell: pwsh
+        run: npm run download-vc-redist
           
       - name: Install Dependencies
         run: npm ci

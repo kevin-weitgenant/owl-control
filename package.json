@@ -10,6 +10,7 @@
     "watch": "webpack --config webpack.config.js --watch",
     "package": "electron-builder",
     "package:win": "electron-builder --win",
+    "download-vc-redist": "powershell scripts/download-vc-redist.ps1",
     "postinstall": "electron-builder install-app-deps",
     "version:patch": "node scripts/bump-version.js patch",
     "version:minor": "node scripts/bump-version.js minor",
