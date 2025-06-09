@@ -26,12 +26,12 @@
   ; Install Visual C++ Redistributable if needed
   ${ifNot} ${FileExists} "$SYSDIR\msvcp140.dll"
     DetailPrint "Installing Visual C++ Redistributable..."
-    File /oname=$PLUGINSDIR\vc_redist.x64.exe "${BUILD_RESOURCES_DIR}\vc_redist.x64.exe"
+    File /oname=$PLUGINSDIR\vc_redist.x64.exe "${BUILD_RESOURCES_DIR}\downloads\vc_redist.x64.exe"
     ExecWait '"$PLUGINSDIR\vc_redist.x64.exe" /quiet /norestart'
   ${endIf}
 
   DetailPrint "Installing gstreamer"
-  File /oname=$PLUGINSDIR\gstreamer-1.0-msvc-x86_64.msi "${BUILD_RESOURCES_DIR}\gstreamer-1.0-msvc-x86_64.msi"
+  File /oname=$PLUGINSDIR\gstreamer-1.0-msvc-x86_64.msi "${BUILD_RESOURCES_DIR}\downloads\gstreamer-1.0-msvc-x86_64.msi"
   ExecWait '"msiexec" /i "$PLUGINSDIR\gstreamer-1.0-msvc-x86_64.msi"'
   
   ; Create shortcuts with proper working directory

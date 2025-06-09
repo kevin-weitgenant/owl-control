@@ -8,8 +8,7 @@ node_modules/
 python-dist/*
 data_dump
 
-build-resources/vc_redist.x64.exe
-build-resources/gstreamer-1.0-msvc-x86_64.msi
+build-resources/downloads
 
 ### Python
 # Byte-compiled / optimized / DLL files
