@@ -2,22 +2,6 @@
   !system "echo Installing VG Control with Python runtime..."
 !macroend
 
-!macro preInit
-  ; Check for Python runtime
-  SetRegView 64
-  ReadRegStr $0 HKLM "SOFTWARE\Python\PythonCore\3.8\InstallPath" ""
-  ${If} $0 == ""
-    ReadRegStr $0 HKLM "SOFTWARE\Python\PythonCore\3.9\InstallPath" ""
-  ${EndIf}
-  ${If} $0 == ""
-    ReadRegStr $0 HKLM "SOFTWARE\Python\PythonCore\3.10\InstallPath" ""
-  ${EndIf}
-  ${If} $0 == ""
-    ReadRegStr $0 HKLM "SOFTWARE\Python\PythonCore\3.11\InstallPath" ""
-  ${EndIf}
-  SetRegView 32
-!macroend
-
 !macro customInit
   ; Custom initialization code
 !macroend

@@ -440,18 +440,16 @@ function startRecordingBridge(startKey: string, stopKey: string) {
       pythonProcess = null;
     }
 
-    // Set the working directory to the project root
-    const projectRoot = path.join(__dirname, '..');
-    
     console.log(`Starting recording bridge module from vg_control package`);
-    
-    pythonProcess = spawn('python', [
+
+    pythonProcess = spawn('uv', [
+      'run',
       '-m',
       'vg_control.recording_bridge',
       '--start-key', startKey,
       '--stop-key', stopKey
     ], {
-      cwd: projectRoot,
+      cwd: rootDir(),
     });
 
     // Handle output
@@ -478,18 +476,16 @@ function startRecordingBridge(startKey: string, stopKey: string) {
 // Start Python upload bridge
 function startUploadBridge(apiToken: string, deleteUploadedFiles: boolean) {
   try {
-    // Set the working directory to the project root
-    const projectRoot = path.join(__dirname, '..');
-    
     console.log(`Starting upload bridge module from vg_control package`);
-    
-    const uploadProcess = spawn('python', [
+
+    const uploadProcess = spawn('uv', [
+      'run',
       '-m',
       'vg_control.upload_bridge',
       '--api-token', apiToken,
       ...(deleteUploadedFiles ? ['--delete-uploaded-files'] : [])
     ], {
-      cwd: projectRoot,
+      cwd: rootDir(),
     });
 
     // Handle output
@@ -510,6 +506,10 @@ function startUploadBridge(apiToken: string, deleteUploadedFiles: boolean) {
     console.error('Error starting upload bridge:', error);
     return false;
   }
+}
+
+function rootDir() {
+  return path.join(__dirname, '..', '..');
 }
 
 // App ready event
