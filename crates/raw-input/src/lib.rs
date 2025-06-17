@@ -6,7 +6,7 @@ use color_eyre::{
 use windows::{
     Win32::{
         Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, WPARAM},
-        System::{LibraryLoader::GetModuleHandleA, SystemInformation::GetTickCount64},
+        System::LibraryLoader::GetModuleHandleA,
         UI::{
             Input::{
                 self, GetRawInputData, HRAWINPUT,
@@ -40,13 +40,7 @@ struct ProcInfo<C> {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Event {
-    pub event_type: EventType,
-    pub timestamp: u64,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum EventType {
+pub enum Event {
     MouseMove([i32; 2]),
     MousePress {
         key: u16,
@@ -62,7 +56,7 @@ pub enum EventType {
     },
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PressState {
     Pressed,
     Released,
@@ -208,82 +202,75 @@ where
                         return LRESULT(0);
                     }
 
-                    let timestamp = GetTickCount64();
-
                     let proc_info_ptr =
                         GetWindowLongPtrA(hwnd, WINDOW_LONG_PTR_INDEX(0)) as *mut ProcInfo<C>;
                     let proc_info = &mut *proc_info_ptr;
-                    let mut callback = |event_type| {
-                        (proc_info.event_callback)(Event {
-                            event_type,
-                            timestamp,
-                        })
-                    };
+                    let callback = &mut proc_info.event_callback;
 
                     match Input::RID_DEVICE_INFO_TYPE(rawinput.header.dwType) {
                         Input::RIM_TYPEMOUSE => {
                             let mouse = rawinput.data.mouse;
                             if mouse.lLastX != 0 || mouse.lLastY != 0 {
-                                callback(EventType::MouseMove([mouse.lLastX, mouse.lLastY]));
+                                callback(Event::MouseMove([mouse.lLastX, mouse.lLastY]));
                             }
 
                             let us_button_flags =
                                 u32::from(mouse.Anonymous.Anonymous.usButtonFlags);
 
                             if us_button_flags & RI_MOUSE_LEFT_BUTTON_DOWN != 0 {
-                                callback(EventType::MousePress {
+                                callback(Event::MousePress {
                                     key: VK_LBUTTON.0,
                                     press_state: PressState::Pressed,
                                 });
                             } else if us_button_flags & RI_MOUSE_LEFT_BUTTON_UP != 0 {
-                                callback(EventType::MousePress {
+                                callback(Event::MousePress {
                                     key: VK_LBUTTON.0,
                                     press_state: PressState::Released,
                                 });
                             } else if us_button_flags & RI_MOUSE_RIGHT_BUTTON_DOWN != 0 {
-                                callback(EventType::MousePress {
+                                callback(Event::MousePress {
                                     key: VK_RBUTTON.0,
                                     press_state: PressState::Pressed,
                                 });
                             } else if us_button_flags & RI_MOUSE_RIGHT_BUTTON_UP != 0 {
-                                callback(EventType::MousePress {
+                                callback(Event::MousePress {
                                     key: VK_RBUTTON.0,
                                     press_state: PressState::Released,
                                 });
                             } else if us_button_flags & RI_MOUSE_MIDDLE_BUTTON_DOWN != 0 {
-                                callback(EventType::MousePress {
+                                callback(Event::MousePress {
                                     key: VK_MBUTTON.0,
                                     press_state: PressState::Pressed,
                                 });
                             } else if us_button_flags & RI_MOUSE_MIDDLE_BUTTON_UP != 0 {
-                                callback(EventType::MousePress {
+                                callback(Event::MousePress {
                                     key: VK_MBUTTON.0,
                                     press_state: PressState::Released,
                                 });
                             } else if us_button_flags & RI_MOUSE_BUTTON_4_DOWN != 0 {
-                                callback(EventType::MousePress {
+                                callback(Event::MousePress {
                                     key: VK_XBUTTON1.0,
                                     press_state: PressState::Pressed,
                                 });
                             } else if us_button_flags & RI_MOUSE_BUTTON_4_UP != 0 {
-                                callback(EventType::MousePress {
+                                callback(Event::MousePress {
                                     key: VK_XBUTTON1.0,
                                     press_state: PressState::Released,
                                 });
                             } else if us_button_flags & RI_MOUSE_BUTTON_5_DOWN != 0 {
-                                callback(EventType::MousePress {
+                                callback(Event::MousePress {
                                     key: VK_XBUTTON2.0,
                                     press_state: PressState::Pressed,
                                 });
                             } else if us_button_flags & RI_MOUSE_BUTTON_5_UP != 0 {
-                                callback(EventType::MousePress {
+                                callback(Event::MousePress {
                                     key: VK_XBUTTON2.0,
                                     press_state: PressState::Released,
                                 });
                             }
 
                             if us_button_flags & RI_MOUSE_WHEEL != 0 {
-                                callback(EventType::MouseScroll {
+                                callback(Event::MouseScroll {
                                     scroll_amount: mouse.Anonymous.Anonymous.usButtonData as i16,
                                 });
                             }
@@ -297,7 +284,7 @@ where
                             } else {
                                 PressState::Pressed
                             };
-                            callback(EventType::KeyPress { key, press_state });
+                            callback(Event::KeyPress { key, press_state });
                         }
                         _ => {}
                     }

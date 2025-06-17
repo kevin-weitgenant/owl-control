@@ -4,11 +4,17 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+video-audio-recorder = { workspace = true, optional = true }
+raw-input.workspace = true
 clap.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
-gstreamer.workspace = true
 tokio.workspace = true
-futures-util.workspace = true
 color-eyre.workspace = true
-derive_more.workspace = true
+uuid.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[features]
+default = ["real-video"]
+real-video = ["dep:video-audio-recorder"]

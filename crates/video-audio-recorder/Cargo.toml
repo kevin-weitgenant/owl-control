@@ -1,0 +1,13 @@
+[package]
+name = "video-audio-recorder"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap.workspace = true
+tracing.workspace = true
+gstreamer.workspace = true
+tokio.workspace = true
+futures-util.workspace = true
+color-eyre.workspace = true
+derive_more.workspace = true
