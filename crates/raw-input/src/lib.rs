@@ -14,13 +14,14 @@ use windows::{
                 RAWINPUT, RAWINPUTDEVICE, RID_INPUT, RIDEV_INPUTSINK, RegisterRawInputDevices,
             },
             WindowsAndMessaging::{
-                CREATESTRUCTA, CreateWindowExA, DefWindowProcA, DestroyWindow, GetWindowLongPtrA,
-                HWND_MESSAGE, PostQuitMessage, RI_KEY_BREAK, RI_MOUSE_BUTTON_4_DOWN,
-                RI_MOUSE_BUTTON_4_UP, RI_MOUSE_BUTTON_5_DOWN, RI_MOUSE_BUTTON_5_UP,
-                RI_MOUSE_LEFT_BUTTON_DOWN, RI_MOUSE_LEFT_BUTTON_UP, RI_MOUSE_MIDDLE_BUTTON_DOWN,
-                RI_MOUSE_MIDDLE_BUTTON_UP, RI_MOUSE_RIGHT_BUTTON_DOWN, RI_MOUSE_RIGHT_BUTTON_UP,
-                RI_MOUSE_WHEEL, RegisterClassExA, SetWindowLongPtrA, UnregisterClassA,
-                WINDOW_EX_STYLE, WINDOW_LONG_PTR_INDEX, WINDOW_STYLE, WNDCLASSEXA,
+                CREATESTRUCTA, CreateWindowExA, DefWindowProcA, DestroyWindow, DispatchMessageA,
+                GetWindowLongPtrA, HWND_MESSAGE, MSG, PM_REMOVE, PeekMessageA, PostQuitMessage,
+                RI_KEY_BREAK, RI_MOUSE_BUTTON_4_DOWN, RI_MOUSE_BUTTON_4_UP, RI_MOUSE_BUTTON_5_DOWN,
+                RI_MOUSE_BUTTON_5_UP, RI_MOUSE_LEFT_BUTTON_DOWN, RI_MOUSE_LEFT_BUTTON_UP,
+                RI_MOUSE_MIDDLE_BUTTON_DOWN, RI_MOUSE_MIDDLE_BUTTON_UP, RI_MOUSE_RIGHT_BUTTON_DOWN,
+                RI_MOUSE_RIGHT_BUTTON_UP, RI_MOUSE_WHEEL, RegisterClassA, SetWindowLongPtrA,
+                TranslateMessage, UnregisterClassA, WINDOW_EX_STYLE, WINDOW_LONG_PTR_INDEX,
+                WINDOW_STYLE, WNDCLASSA,
             },
         },
     },
@@ -76,7 +77,7 @@ where
             let class_name = PCSTR(c"RawInputWindowClass".to_bytes_with_nul().as_ptr());
             let h_instance: HINSTANCE = GetModuleHandleA(None)?.into();
 
-            let wc = WNDCLASSEXA {
+            let wc = WNDCLASSA {
                 lpfnWndProc: Some(Self::window_proc),
                 cbWndExtra: size_of::<*const ProcInfo<C>>()
                     .try_into()
@@ -86,11 +87,16 @@ where
                 ..Default::default()
             };
 
-            if RegisterClassExA(&wc) == 0 {
-                bail!("failed to register window class");
+            if RegisterClassA(&wc) == 0 {
+                use windows::Win32::Foundation::GetLastError;
+                let error = GetLastError();
+                bail!("failed to register window class: {error:?}");
             }
 
             let proc_info = Box::new(ProcInfo { event_callback });
+            let proc_info_ptr = Box::into_raw(proc_info);
+
+            tracing::debug!(proc_info_ptr=?proc_info_ptr);
 
             let hwnd = CreateWindowExA(
                 WINDOW_EX_STYLE(0),
@@ -104,9 +110,11 @@ where
                 Some(HWND_MESSAGE),
                 None,
                 Some(h_instance),
-                Some(Box::into_raw(proc_info) as *mut _),
+                Some(proc_info_ptr as *mut _),
             )
             .wrap_err("failed to create window")?;
+
+            tracing::debug!("RawInput window created: {hwnd:?}");
 
             let raw_input_devices = [
                 0x02, // Mouse
@@ -136,6 +144,18 @@ where
         }
     }
 
+    pub fn run_message_queue_till_empty(&self) -> Result<()> {
+        unsafe {
+            let mut msg = MSG::default();
+            while PeekMessageA(&mut msg, None, 0, 0, PM_REMOVE).as_bool() {
+                let _ = TranslateMessage(&msg);
+                DispatchMessageA(&msg);
+            }
+            Ok(())
+        }
+    }
+
+    #[tracing::instrument(skip_all, fields(hwnd = ?hwnd))]
     unsafe extern "system" fn window_proc(
         hwnd: HWND,
         msg: u32,
@@ -146,20 +166,33 @@ where
             use windows::Win32::UI::WindowsAndMessaging;
             match msg {
                 WindowsAndMessaging::WM_CREATE => {
-                    let create_struct = lparam.0 as *mut CREATESTRUCTA;
-                    let lp_create_param = (*create_struct).lpCreateParams;
-                    SetWindowLongPtrA(hwnd, WINDOW_LONG_PTR_INDEX(0), lp_create_param as isize);
+                    let create_struct: *mut CREATESTRUCTA =
+                        std::ptr::with_exposed_provenance_mut(lparam.0 as usize);
+                    let proc_info: *mut ProcInfo<C> = (*create_struct).lpCreateParams as *mut _;
+                    tracing::debug!(
+                        msg="WM_CREATE", create_struct=?*create_struct
+                    );
+                    SetWindowLongPtrA(
+                        hwnd,
+                        WINDOW_LONG_PTR_INDEX(0),
+                        proc_info.expose_provenance() as isize,
+                    );
                     LRESULT(0)
                 }
                 WindowsAndMessaging::WM_DESTROY => {
-                    let proc_info_ptr =
-                        GetWindowLongPtrA(hwnd, WINDOW_LONG_PTR_INDEX(0)) as *mut ProcInfo<C>;
+                    let proc_info_ptr: *mut ProcInfo<C> = std::ptr::with_exposed_provenance_mut(
+                        GetWindowLongPtrA(hwnd, WINDOW_LONG_PTR_INDEX(0)) as usize,
+                    );
                     let _ = Box::from_raw(proc_info_ptr);
+                    tracing::debug!(msg = "WM_DESTROY");
                     PostQuitMessage(0);
                     LRESULT(0)
                 }
                 WindowsAndMessaging::WM_INPUT => {
-                    let hrawinput = *(lparam.0 as *mut HRAWINPUT);
+                    tracing::debug!(?lparam);
+                    let hrawinput: HRAWINPUT =
+                        *std::ptr::with_exposed_provenance_mut(lparam.0 as usize);
+                    tracing::debug!(?hrawinput);
                     let mut rawinput = RAWINPUT::default();
                     let mut pcbsize = size_of_val(&rawinput) as u32;
                     let result = GetRawInputData(
@@ -283,6 +316,26 @@ impl<C> Drop for RawInput<C> {
             DestroyWindow(self.hwnd).expect("failed to destroy window");
             UnregisterClassA(self.class_name, Some(self.h_instance))
                 .expect("failed to unregister class");
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[ignore = "run manually"]
+    fn print_keypresses() -> Result<()> {
+        color_eyre::install()?;
+        tracing_subscriber::fmt::init();
+
+        let raw_input = RawInput::initialize(|event| println!("{event:?}"))
+            .expect("Failed to initialize raw input");
+        loop {
+            raw_input
+                .run_message_queue_till_empty()
+                .wrap_err("failed to run message queue")?;
         }
     }
 }
