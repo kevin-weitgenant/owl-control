@@ -96,7 +96,7 @@ async fn main() -> Result<()> {
                 recorder.seen_input(e).await?;
                 if let Some(key) = keycode_from_event(&e) {
                     if key == start_hotkey {
-                        tracing::info!("Start hotkey pressed, restarting recording");
+                        tracing::info!("Start hotkey pressed, starting recording");
                         recorder.start().await?;
                     } else if key == end_hotkey {
                         tracing::info!("Stop hotkey pressed, stopping recording");
