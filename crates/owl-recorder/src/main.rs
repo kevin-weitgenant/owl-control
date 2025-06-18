@@ -2,6 +2,7 @@ mod find_game;
 mod hardware_id;
 mod idle;
 mod input_recorder;
+mod keycode;
 mod recorder;
 mod recording;
 
@@ -11,7 +12,7 @@ use std::{
 };
 
 use clap::Parser;
-use color_eyre::Result;
+use color_eyre::{Result, eyre::eyre};
 
 use game_process::does_process_exist;
 use raw_input::RawInput;
@@ -22,7 +23,7 @@ use tokio::{
 #[cfg(feature = "real-video")]
 use video_audio_recorder::gstreamer;
 
-use crate::{idle::IdlenessTracker, recorder::Recorder};
+use crate::{idle::IdlenessTracker, keycode::lookup_keycode, recorder::Recorder};
 
 #[derive(Parser, Debug)]
 #[command(version, about)]
@@ -32,6 +33,12 @@ struct Args {
 
     #[arg(short, long)]
     games: Vec<String>,
+
+    #[arg(long, default_value = "F4")]
+    start_hotkey: String,
+
+    #[arg(long, default_value = "F5")]
+    stop_hotkey: String,
 }
 
 const MAX_IDLE_DURATION: Duration = Duration::from_secs(5);
@@ -47,7 +54,14 @@ async fn main() -> Result<()> {
     let Args {
         recording_location,
         games,
+        start_hotkey,
+        stop_hotkey,
     } = Args::parse();
+
+    let start_hotkey = lookup_keycode(&start_hotkey)
+        .ok_or_else(|| eyre!("Invalid start hotkey: {start_hotkey}"))?;
+    let end_hotkey =
+        lookup_keycode(&stop_hotkey).ok_or_else(|| eyre!("Invalid stop hotkey: {stop_hotkey}"))?;
 
     let mut recorder = Recorder::new(
         || {
@@ -61,8 +75,6 @@ async fn main() -> Result<()> {
         },
         games,
     );
-
-    recorder.start().await?;
 
     let mut input_rx = listen_for_raw_inputs();
 
@@ -80,7 +92,17 @@ async fn main() -> Result<()> {
                 break;
             },
             e = input_rx.recv() => {
-                recorder.seen_input(e.expect("raw input reader was closed early")).await?;
+                let e = e.expect("raw input reader was closed early");
+                recorder.seen_input(e).await?;
+                if let Some(key) = keycode_from_event(&e) {
+                    if key == start_hotkey {
+                        tracing::info!("Start hotkey pressed, restarting recording");
+                        recorder.start().await?;
+                    } else if key == end_hotkey {
+                        tracing::info!("Stop hotkey pressed, stopping recording");
+                        recorder.stop().await?;
+                    }
+                }
                 if idleness_tracker.is_idle() {
                     tracing::info!("Input detected, restarting recording");
                     recorder.start().await?;
@@ -115,6 +137,14 @@ async fn main() -> Result<()> {
     recorder.stop().await?;
 
     Ok(())
+}
+
+fn keycode_from_event(event: &raw_input::Event) -> Option<u16> {
+    if let raw_input::Event::KeyPress { key, .. } = event {
+        Some(*key)
+    } else {
+        None
+    }
 }
 
 fn listen_for_raw_inputs() -> mpsc::Receiver<raw_input::Event> {
