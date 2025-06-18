@@ -108,23 +108,21 @@ async fn main() -> Result<()> {
                 }
                 idleness_tracker.update_activity();
             },
-            _ = perform_checks.tick(), if recorder.is_recording() => {
-                if let Some(pid) = recorder.pid() {
-                    if !does_process_exist(pid)? {
-                        tracing::info!(pid=pid.0, "Game process no longer exists, stopping recording");
+            _ = perform_checks.tick() => {
+                if let Some(recording) = recorder.recording() {
+                    if !does_process_exist(recording.pid())? {
+                        tracing::info!(pid=recording.pid().0, "Game process no longer exists, stopping recording");
                         recorder.stop().await?;
-                    }
-                } else if idleness_tracker.is_idle() {
-                    tracing::info!("No input detected for 5 seconds, stopping recording");
-                    recorder.stop().await?;
-                } else if let Some(e) = recorder.elapsed() {
-                    if e > MAX_RECORDING_DURATION {
+                    } else if idleness_tracker.is_idle() {
+                        tracing::info!("No input detected for 5 seconds, stopping recording");
+                        recorder.stop().await?;
+                    } else if recording.elapsed() > MAX_RECORDING_DURATION {
                         tracing::info!("Recording duration exceeded {} s, restarting recording", MAX_RECORDING_DURATION.as_secs());
                         recorder.stop().await?;
                         recorder.start().await?;
                         idleness_tracker.update_activity();
-                    }
-                };
+                    };
+                }
             },
         }
     }

@@ -4,7 +4,6 @@ use color_eyre::{
     Result,
     eyre::{Context as _, OptionExt as _},
 };
-use game_process::Pid;
 
 use crate::{
     find_game::get_foregrounded_game,
@@ -14,12 +13,7 @@ use crate::{
 pub(crate) struct Recorder<D> {
     recording_dir: D,
     games: Vec<String>,
-    recording: Option<InProgressRecording>,
-}
-
-struct InProgressRecording {
-    recording: Recording,
-    pid: Pid,
+    recording: Option<Recording>,
 }
 
 impl<D> Recorder<D>
@@ -34,18 +28,8 @@ where
         }
     }
 
-    pub(crate) fn is_recording(&self) -> bool {
-        self.recording.is_some()
-    }
-
-    pub(crate) fn pid(&self) -> Option<Pid> {
-        self.recording.as_ref().map(|r| r.pid)
-    }
-
-    pub(crate) fn elapsed(&self) -> Option<std::time::Duration> {
-        self.recording
-            .as_ref()
-            .map(|r| r.recording.start_instant().elapsed())
+    pub(crate) fn recording(&self) -> Option<&Recording> {
+        self.recording.as_ref()
     }
 
     pub(crate) async fn start(&mut self) -> Result<()> {
@@ -86,13 +70,13 @@ where
         )
         .await?;
 
-        self.recording = Some(InProgressRecording { recording, pid });
+        self.recording = Some(recording);
 
         Ok(())
     }
 
     pub(crate) async fn seen_input(&mut self, e: raw_input::Event) -> Result<()> {
-        let Some(InProgressRecording { recording, .. }) = self.recording.as_mut() else {
+        let Some(recording) = self.recording.as_mut() else {
             return Ok(());
         };
         recording.seen_input(e).await?;
@@ -100,7 +84,7 @@ where
     }
 
     pub(crate) async fn stop(&mut self) -> Result<()> {
-        let Some(InProgressRecording { recording, .. }) = self.recording.take() else {
+        let Some(recording) = self.recording.take() else {
             return Ok(());
         };
         recording.stop().await?;

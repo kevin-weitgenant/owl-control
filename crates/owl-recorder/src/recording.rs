@@ -23,6 +23,9 @@ pub(crate) struct Recording {
     metadata_path: PathBuf,
     start_time: SystemTime,
     start_instant: Instant,
+
+    pid: Pid,
+    hwnd: HWND,
 }
 
 pub(crate) struct MetadataParameters {
@@ -40,10 +43,6 @@ pub(crate) struct InputParameters {
 }
 
 impl Recording {
-    pub(crate) fn start_instant(&self) -> Instant {
-        self.start_instant
-    }
-
     pub(crate) async fn start(
         MetadataParameters {
             path: metadata_path,
@@ -78,7 +77,35 @@ impl Recording {
             metadata_path,
             start_time,
             start_instant,
+
+            pid,
+            hwnd,
         })
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn start_time(&self) -> SystemTime {
+        self.start_time
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn start_instant(&self) -> Instant {
+        self.start_instant
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn elapsed(&self) -> std::time::Duration {
+        self.start_instant.elapsed()
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn pid(&self) -> Pid {
+        self.pid
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn hwnd(&self) -> HWND {
+        self.hwnd
     }
 
     pub(crate) async fn seen_input(&mut self, e: raw_input::Event) -> Result<()> {
