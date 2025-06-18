@@ -5,6 +5,7 @@ use std::{
 
 use color_eyre::Result;
 use serde::Serialize;
+use tokio_util::task::AbortOnDropHandle;
 
 #[cfg(feature = "real-video")]
 use video_audio_recorder::WindowRecorder;
@@ -15,7 +16,7 @@ pub(crate) struct Recording {
     #[cfg(feature = "real-video")]
     window_recorder: WindowRecorder,
     #[cfg(feature = "real-video")]
-    window_recorder_listener: AbortOnDropHandle<()>,
+    window_recorder_listener: AbortOnDropHandle<Result<()>>,
     input_recorder: InputRecorder,
 
     metadata_path: PathBuf,
@@ -54,7 +55,7 @@ impl Recording {
         let window_recorder = WindowRecorder::start_recording(&video_path, pid, hwnd)?;
         #[cfg(feature = "real-video")]
         let window_recorder_listener =
-            AbortOnDropHandle(tokio::spawn(window_recorder.listen_to_messages()));
+            AbortOnDropHandle::new(tokio::task::spawn(window_recorder.listen_to_messages()));
 
         let input_recorder = InputRecorder::start(&csv_path).await?;
 
@@ -79,7 +80,7 @@ impl Recording {
         #[cfg(feature = "real-video")]
         self.window_recorder.stop_recording();
         #[cfg(feature = "real-video")]
-        self.window_recorder_listener.await?;
+        self.window_recorder_listener.await.unwrap()?;
 
         self.input_recorder.stop().await?;
 

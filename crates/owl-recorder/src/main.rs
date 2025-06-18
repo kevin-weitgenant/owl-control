@@ -10,7 +10,7 @@ use color_eyre::{Result, eyre::Context as _};
 use raw_input::RawInput;
 use tokio::sync::{mpsc, oneshot};
 #[cfg(feature = "real-video")]
-use video_audio_recorder::{WindowRecorder, gstreamer};
+use video_audio_recorder::gstreamer;
 
 use crate::recording::{InputParameters, MetadataParameters, Recording, WindowParameters};
 
