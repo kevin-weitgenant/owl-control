@@ -24,7 +24,7 @@ fn create_pipeline(path: &Path, _pid: u32, hwnd: usize) -> Result<Pipeline> {
             wasapi2src loopback=true
             ! encoder.audio_0
 
-            encodebin2 name=encoder profile=video/quicktime,variant=iso:video/x-raw,width=1920,height=1080->video/x-h264:audio/x-raw,channels=2,rate=48000->audio/mpeg,mpegversion=1,layer=3
+            encodebin2 name=encoder profile=video/quicktime,variant=iso:video/x-raw,width=1920,height=1080,framerate=60/1->video/x-h264:audio/x-raw,channels=2,rate=48000->audio/mpeg,mpegversion=1,layer=3
             ! filesink name=filesink
         "
         );
