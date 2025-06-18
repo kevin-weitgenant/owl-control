@@ -90,7 +90,7 @@ impl InputRecorder {
             },
         };
         let event_data = event_data.to_string();
-        let line = format!("{timestamp},{event_name},{event_data}\n");
+        let line = format!("{timestamp},{event_name},\"{event_data}\"\n");
         self.file
             .write_all(line.as_bytes())
             .await
