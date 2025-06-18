@@ -4,6 +4,7 @@ use std::{
 };
 
 use color_eyre::Result;
+use game_process::{Pid, windows::Win32::Foundation::HWND};
 use serde::Serialize;
 use tokio_util::task::AbortOnDropHandle;
 
@@ -29,8 +30,8 @@ pub(crate) struct MetadataParameters {
 
 pub(crate) struct WindowParameters {
     pub(crate) path: PathBuf,
-    pub(crate) pid: u32,
-    pub(crate) hwnd: u32,
+    pub(crate) pid: Pid,
+    pub(crate) hwnd: HWND,
 }
 
 pub(crate) struct InputParameters {
@@ -52,7 +53,8 @@ impl Recording {
         let start_time = SystemTime::now();
 
         #[cfg(feature = "real-video")]
-        let window_recorder = WindowRecorder::start_recording(&video_path, pid, hwnd)?;
+        let window_recorder =
+            WindowRecorder::start_recording(&video_path, pid.0, hwnd.0.expose_provenance())?;
         #[cfg(feature = "real-video")]
         let window_recorder_listener =
             AbortOnDropHandle::new(tokio::task::spawn(window_recorder.listen_to_messages()));
@@ -100,12 +102,12 @@ impl Recording {
         let duration = end_time
             .duration_since(start_time)
             .expect("start time was recorded earlier")
-            .as_secs();
+            .as_secs_f32();
 
         let start_timestamp = start_time.duration_since(UNIX_EPOCH).unwrap().as_secs();
-        let end_timestamp = start_time.duration_since(UNIX_EPOCH).unwrap().as_secs();
+        let end_timestamp = end_time.duration_since(UNIX_EPOCH).unwrap().as_secs();
 
-        let hardware_id = hardware_id::get().await?;
+        let hardware_id = hardware_id::get()?;
 
         Ok(Metadata {
             session_id: uuid::Uuid::new_v4().to_string(),
@@ -123,5 +125,5 @@ struct Metadata {
     hardware_id: String,
     start_timestamp: u64,
     end_timestamp: u64,
-    duration: u64,
+    duration: f32,
 }

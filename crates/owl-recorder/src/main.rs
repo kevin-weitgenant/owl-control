@@ -1,3 +1,4 @@
+mod find_game;
 mod hardware_id;
 mod input_recorder;
 mod recording;
@@ -5,14 +6,20 @@ mod recording;
 use std::{path::PathBuf, time::Duration};
 
 use clap::Parser;
-use color_eyre::{Result, eyre::Context as _};
+use color_eyre::{
+    Result,
+    eyre::{Context as _, OptionExt},
+};
 
 use raw_input::RawInput;
 use tokio::sync::{mpsc, oneshot};
 #[cfg(feature = "real-video")]
 use video_audio_recorder::gstreamer;
 
-use crate::recording::{InputParameters, MetadataParameters, Recording, WindowParameters};
+use crate::{
+    find_game::get_foregrounded_game,
+    recording::{InputParameters, MetadataParameters, Recording, WindowParameters},
+};
 
 #[derive(Parser, Debug)]
 #[command(version, about)]
@@ -20,11 +27,8 @@ struct Args {
     #[arg(long)]
     recording_location: PathBuf,
 
-    #[arg(long)]
-    pid: u32,
-
-    #[arg(long)]
-    hwnd: u32,
+    #[arg(short, long)]
+    games: Vec<String>,
 }
 
 #[tokio::main]
@@ -36,62 +40,45 @@ async fn main() -> Result<()> {
 
     let Args {
         recording_location,
-        pid,
-        hwnd,
+        games,
     } = Args::parse();
 
     std::fs::create_dir_all(&recording_location)
         .wrap_err("Failed to create recording directory")?;
 
+    let (pid, hwnd) = get_foregrounded_game(&games)
+        .wrap_err("failed to get foregrounded game")?
+        .ok_or_eyre(
+            "No game window found. Make sure the game is running and in fullscreen mode.",
+        )?;
+
     tracing::info!(
         pid=?pid,
         hwnd=?hwnd,
         recording_location=%recording_location.display(),
-        "Started recording"
+        "Starting recording"
     );
-
-    let file_in_recording_location = |name| {
-        let mut recording_location = recording_location.clone();
-        recording_location.set_file_name(name);
-        recording_location
-    };
 
     let mut recording = Recording::start(
         MetadataParameters {
-            path: file_in_recording_location("metadata.json"),
+            path: recording_location.join("metadata.json"),
         },
         WindowParameters {
-            path: file_in_recording_location("recording.mp4"),
+            path: recording_location.join("recording.mp4"),
             pid,
             hwnd,
         },
         InputParameters {
-            path: file_in_recording_location("inputs.csv"),
+            path: recording_location.join("inputs.csv"),
         },
     )
     .await?;
 
-    let (input_tx, mut input_rx) = mpsc::channel(1);
+    let local_set = tokio::task::LocalSet::new();
 
-    tokio::task::spawn_local(async move {
-        let raw_input = RawInput::initialize(|e| input_tx.blocking_send(e).unwrap())
-            .expect("raw input failed to initialize");
-        loop {
-            raw_input
-                .run_message_queue_till_empty()
-                .expect("failed to run windows message queue");
-            tokio::time::sleep(Duration::from_millis(1000 / 60 / 20)).await;
-        }
-    });
+    let mut input_rx = listen_for_raw_inputs(&local_set);
 
-    let (stop_tx, mut stop_rx) = oneshot::channel();
-
-    tokio::spawn(async move {
-        tokio::signal::ctrl_c()
-            .await
-            .expect("failed to listen for Ctrl+C signal");
-        let _ = stop_tx.send(());
-    });
+    let mut stop_rx = wait_for_ctrl_c();
 
     loop {
         tokio::select! {
@@ -99,7 +86,7 @@ async fn main() -> Result<()> {
                 r.expect("signal handler was closed early");
                 break;
             },
-            e = (&mut input_rx).recv() => {
+            e = input_rx.recv() => {
                 recording.seen_input(e.expect("raw input reader was closed early")).await?;
             },
         }
@@ -110,4 +97,32 @@ async fn main() -> Result<()> {
     recording.stop().await?;
 
     Ok(())
+}
+
+fn listen_for_raw_inputs(local_set: &tokio::task::LocalSet) -> mpsc::Receiver<raw_input::Event> {
+    let (input_tx, input_rx) = mpsc::channel(1);
+
+    local_set.spawn_local(async move {
+        let raw_input = RawInput::initialize(|e| input_tx.blocking_send(e).unwrap())
+            .expect("raw input failed to initialize");
+        loop {
+            raw_input
+                .poll_queue()
+                .expect("failed to run windows message queue");
+            tokio::time::sleep(Duration::from_millis(1000 / 60 / 20)).await;
+        }
+    });
+    input_rx
+}
+
+fn wait_for_ctrl_c() -> oneshot::Receiver<()> {
+    let (ctrl_c_tx, ctrl_c_rx) = oneshot::channel();
+
+    tokio::spawn(async move {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("failed to listen for Ctrl+C signal");
+        let _ = ctrl_c_tx.send(());
+    });
+    ctrl_c_rx
 }

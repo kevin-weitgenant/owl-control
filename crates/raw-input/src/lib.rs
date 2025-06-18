@@ -16,13 +16,13 @@ use windows::{
             },
             WindowsAndMessaging::{
                 CREATESTRUCTA, CreateWindowExA, DefWindowProcA, DestroyWindow, DispatchMessageA,
-                GetWindowLongPtrA, HWND_MESSAGE, MSG, PM_REMOVE, PeekMessageA, PostQuitMessage,
-                RI_KEY_BREAK, RI_MOUSE_BUTTON_4_DOWN, RI_MOUSE_BUTTON_4_UP, RI_MOUSE_BUTTON_5_DOWN,
-                RI_MOUSE_BUTTON_5_UP, RI_MOUSE_LEFT_BUTTON_DOWN, RI_MOUSE_LEFT_BUTTON_UP,
-                RI_MOUSE_MIDDLE_BUTTON_DOWN, RI_MOUSE_MIDDLE_BUTTON_UP, RI_MOUSE_RIGHT_BUTTON_DOWN,
-                RI_MOUSE_RIGHT_BUTTON_UP, RI_MOUSE_WHEEL, RegisterClassA, SetWindowLongPtrA,
-                TranslateMessage, UnregisterClassA, WINDOW_EX_STYLE, WINDOW_LONG_PTR_INDEX,
-                WINDOW_STYLE, WNDCLASSA,
+                GetMessageA, GetWindowLongPtrA, HWND_MESSAGE, MSG, PM_REMOVE, PeekMessageA,
+                PostQuitMessage, RI_KEY_BREAK, RI_MOUSE_BUTTON_4_DOWN, RI_MOUSE_BUTTON_4_UP,
+                RI_MOUSE_BUTTON_5_DOWN, RI_MOUSE_BUTTON_5_UP, RI_MOUSE_LEFT_BUTTON_DOWN,
+                RI_MOUSE_LEFT_BUTTON_UP, RI_MOUSE_MIDDLE_BUTTON_DOWN, RI_MOUSE_MIDDLE_BUTTON_UP,
+                RI_MOUSE_RIGHT_BUTTON_DOWN, RI_MOUSE_RIGHT_BUTTON_UP, RI_MOUSE_WHEEL,
+                RegisterClassA, SetWindowLongPtrA, TranslateMessage, UnregisterClassA,
+                WINDOW_EX_STYLE, WINDOW_LONG_PTR_INDEX, WINDOW_STYLE, WNDCLASSA,
             },
         },
     },
@@ -139,7 +139,18 @@ where
         }
     }
 
-    pub fn run_message_queue_till_empty(&self) -> Result<()> {
+    pub fn run_queue(&self) -> Result<()> {
+        unsafe {
+            let mut msg = MSG::default();
+            while GetMessageA(&mut msg, None, 0, 0).as_bool() {
+                let _ = TranslateMessage(&msg);
+                DispatchMessageA(&msg);
+            }
+            Ok(())
+        }
+    }
+
+    pub fn poll_queue(&self) -> Result<()> {
         unsafe {
             let mut msg = MSG::default();
             while PeekMessageA(&mut msg, None, 0, 0, PM_REMOVE).as_bool() {
@@ -322,10 +333,8 @@ mod tests {
 
         let raw_input = RawInput::initialize(|event| println!("{event:?}"))
             .expect("Failed to initialize raw input");
-        loop {
-            raw_input
-                .run_message_queue_till_empty()
-                .wrap_err("failed to run message queue")?;
-        }
+        raw_input
+            .run_queue()
+            .wrap_err("failed to run message queue")
     }
 }

@@ -3,7 +3,10 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use color_eyre::{Result, eyre::WrapErr as _};
+use color_eyre::{
+    Result,
+    eyre::{WrapErr as _, eyre},
+};
 use raw_input::PressState;
 use serde_json::json;
 use tokio::{fs::File, io::AsyncWriteExt as _};
@@ -24,12 +27,11 @@ pub(crate) struct InputRecorder {
 /// MB: [button_idx : int, key_down : bool]
 /// MM: [dx : int, dy : int]
 /// SCROLL: [amt : int] (positive = up)
-
-const HEADER: &str = "timestamp,event_type,event_args\n";
-
 impl InputRecorder {
     pub(crate) async fn start(path: &Path) -> Result<Self> {
-        let file = File::create_new(path).await?;
+        let file = File::create_new(path)
+            .await
+            .wrap_err_with(|| eyre!("failed to create and open {path:?}"))?;
         let mut recorder = Self { file };
 
         recorder.write_header().await?;
@@ -47,6 +49,7 @@ impl InputRecorder {
     }
 
     async fn write_header(&mut self) -> Result<()> {
+        const HEADER: &str = "timestamp,event_type,event_args\n";
         self.file.write_all(HEADER.as_bytes()).await?;
         Ok(())
     }

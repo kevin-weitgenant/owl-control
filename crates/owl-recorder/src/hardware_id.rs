@@ -1,16 +1,6 @@
-use color_eyre::{Result, eyre::OptionExt as _};
-use tokio::process::Command;
+use color_eyre::Result;
+use game_process::hardware_id;
 
-pub(crate) async fn get() -> Result<String> {
-    let output = Command::new("wmic")
-        .args(["csproduct", "get", "uuid"])
-        .output()
-        .await?;
-    let hardware_id = output
-        .stdout
-        .split(|&c| c == b'\n')
-        .nth(1)
-        .ok_or_eyre("Invalid output from wmic")?;
-    let hardware_id = String::from_utf8(hardware_id.to_owned())?.trim().to_owned();
-    Ok(hardware_id)
+pub(crate) fn get() -> Result<String> {
+    hardware_id()
 }

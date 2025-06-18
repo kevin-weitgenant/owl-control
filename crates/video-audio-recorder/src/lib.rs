@@ -13,7 +13,7 @@ use gstreamer::{
 
 pub use gstreamer;
 
-fn create_pipeline(path: &Path, _pid: u32, hwnd: u32) -> Result<Pipeline> {
+fn create_pipeline(path: &Path, _pid: u32, hwnd: usize) -> Result<Pipeline> {
     // Loopback is bugged: gstreamer/gstreamer#4259
     // Add the following parameters once it's fixed: remove loopback=true and add "loopback-target-pid={pid} loopback-mode=include-process-tree"
     let video = format!(
@@ -64,7 +64,7 @@ pub struct WindowRecorder {
 }
 
 impl WindowRecorder {
-    pub fn start_recording(path: &Path, pid: u32, hwnd: u32) -> Result<WindowRecorder> {
+    pub fn start_recording(path: &Path, pid: u32, hwnd: usize) -> Result<WindowRecorder> {
         let pipeline = create_pipeline(path, pid, hwnd)?;
         pipeline
             .set_state(gstreamer::State::Playing)

@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 video-audio-recorder = { workspace = true, optional = true }
 raw-input.workspace = true
+game-process.workspace = true
 clap.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
