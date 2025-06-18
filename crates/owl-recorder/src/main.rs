@@ -102,8 +102,7 @@ async fn main() -> Result<()> {
                         tracing::info!("Stop hotkey pressed, stopping recording");
                         recorder.stop().await?;
                     }
-                }
-                if idleness_tracker.is_idle() {
+                } else if idleness_tracker.is_idle() {
                     tracing::info!("Input detected, restarting recording");
                     recorder.start().await?;
                 }
