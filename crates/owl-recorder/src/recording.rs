@@ -1,6 +1,6 @@
 use std::{
     path::{Path, PathBuf},
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Instant, SystemTime, UNIX_EPOCH},
 };
 
 use color_eyre::Result;
@@ -22,6 +22,7 @@ pub(crate) struct Recording {
 
     metadata_path: PathBuf,
     start_time: SystemTime,
+    start_instant: Instant,
 }
 
 pub(crate) struct MetadataParameters {
@@ -39,6 +40,10 @@ pub(crate) struct InputParameters {
 }
 
 impl Recording {
+    pub(crate) fn start_instant(&self) -> Instant {
+        self.start_instant
+    }
+
     pub(crate) async fn start(
         MetadataParameters {
             path: metadata_path,
@@ -51,6 +56,7 @@ impl Recording {
         InputParameters { path: csv_path }: InputParameters,
     ) -> Result<Self> {
         let start_time = SystemTime::now();
+        let start_instant = Instant::now();
 
         #[cfg(feature = "real-video")]
         let window_recorder =
@@ -71,6 +77,7 @@ impl Recording {
 
             metadata_path,
             start_time,
+            start_instant,
         })
     }
 
@@ -86,26 +93,29 @@ impl Recording {
 
         self.input_recorder.stop().await?;
 
-        Self::write_metadata(self.start_time, &self.metadata_path).await?;
+        Self::write_metadata(self.start_instant, self.start_time, &self.metadata_path).await?;
         Ok(())
     }
 
-    async fn write_metadata(start_time: SystemTime, path: &Path) -> Result<()> {
-        let metadata = Self::final_metadata(start_time).await?;
+    async fn write_metadata(
+        start_instant: Instant,
+        start_time: SystemTime,
+        path: &Path,
+    ) -> Result<()> {
+        let metadata = Self::final_metadata(start_instant, start_time).await?;
         let metadata = serde_json::to_string_pretty(&metadata)?;
         tokio::fs::write(path, &metadata).await?;
         Ok(())
     }
 
-    async fn final_metadata(start_time: SystemTime) -> Result<Metadata> {
-        let end_time = SystemTime::now();
-        let duration = end_time
-            .duration_since(start_time)
-            .expect("start time was recorded earlier")
-            .as_secs_f32();
+    async fn final_metadata(start_instant: Instant, start_time: SystemTime) -> Result<Metadata> {
+        let duration = start_instant.elapsed().as_secs_f32();
 
         let start_timestamp = start_time.duration_since(UNIX_EPOCH).unwrap().as_secs();
-        let end_timestamp = end_time.duration_since(UNIX_EPOCH).unwrap().as_secs();
+        let end_timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
 
         let hardware_id = hardware_id::get()?;
 

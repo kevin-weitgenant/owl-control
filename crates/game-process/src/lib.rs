@@ -4,7 +4,7 @@ use color_eyre::Result;
 
 use windows::{
     Win32::{
-        Foundation::{CloseHandle, HANDLE, HWND, RECT},
+        Foundation::{CloseHandle, HANDLE, HWND, RECT, STILL_ACTIVE},
         Graphics::Gdi::{MONITOR_DEFAULTTOPRIMARY, MonitorFromWindow},
         System::{
             Diagnostics::ToolHelp::{
@@ -12,8 +12,8 @@ use windows::{
                 TH32CS_SNAPPROCESS,
             },
             Threading::{
-                OpenProcess, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION,
-                QueryFullProcessImageNameA,
+                GetExitCodeProcess, OpenProcess, PROCESS_NAME_WIN32,
+                PROCESS_QUERY_LIMITED_INFORMATION, QueryFullProcessImageNameA,
             },
             WindowsProgramming::HW_PROFILE_INFOA,
         },
@@ -27,14 +27,35 @@ pub use windows;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Pid(pub u32);
 
+struct CloseProcessOnDrop(HANDLE);
+
+impl Drop for CloseProcessOnDrop {
+    fn drop(&mut self) {
+        unsafe {
+            CloseHandle(self.0).unwrap();
+        }
+    }
+}
+
+pub fn does_process_exist(Pid(pid): Pid) -> Result<bool, Error> {
+    unsafe {
+        let process =
+            CloseProcessOnDrop(OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid)?);
+        let mut exit_code = 0;
+        GetExitCodeProcess(process.0, &mut exit_code)?;
+        Ok(exit_code == STILL_ACTIVE.0 as u32)
+    }
+}
+
 pub fn process_name_for_pid(Pid(pid): Pid) -> Result<CString> {
     unsafe {
-        let process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid)?;
+        let process =
+            CloseProcessOnDrop(OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid)?);
 
         let mut process_name = [0; 256];
         let mut process_name_size = process_name.len() as u32;
         QueryFullProcessImageNameA(
-            process,
+            process.0,
             PROCESS_NAME_WIN32,
             PSTR(&mut process_name as *mut u8),
             &mut process_name_size,

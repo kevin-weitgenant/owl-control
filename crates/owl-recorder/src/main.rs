@@ -1,25 +1,28 @@
 mod find_game;
 mod hardware_id;
+mod idle;
 mod input_recorder;
+mod recorder;
 mod recording;
 
-use std::path::PathBuf;
-
-use clap::Parser;
-use color_eyre::{
-    Result,
-    eyre::{Context as _, OptionExt},
+use std::{
+    path::PathBuf,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
+use clap::Parser;
+use color_eyre::Result;
+
+use game_process::does_process_exist;
 use raw_input::RawInput;
-use tokio::sync::{mpsc, oneshot};
+use tokio::{
+    sync::{mpsc, oneshot},
+    time::MissedTickBehavior,
+};
 #[cfg(feature = "real-video")]
 use video_audio_recorder::gstreamer;
 
-use crate::{
-    find_game::get_foregrounded_game,
-    recording::{InputParameters, MetadataParameters, Recording, WindowParameters},
-};
+use crate::{idle::IdlenessTracker, recorder::Recorder};
 
 #[derive(Parser, Debug)]
 #[command(version, about)]
@@ -30,6 +33,9 @@ struct Args {
     #[arg(short, long)]
     games: Vec<String>,
 }
+
+const MAX_IDLE_DURATION: Duration = Duration::from_secs(5);
+const MAX_RECORDING_DURATION: Duration = Duration::from_secs(60 * 20);
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -43,40 +49,29 @@ async fn main() -> Result<()> {
         games,
     } = Args::parse();
 
-    std::fs::create_dir_all(&recording_location)
-        .wrap_err("Failed to create recording directory")?;
-
-    let (pid, hwnd) = get_foregrounded_game(&games)
-        .wrap_err("failed to get foregrounded game")?
-        .ok_or_eyre(
-            "No game window found. Make sure the game is running and in fullscreen mode.",
-        )?;
-
-    tracing::info!(
-        pid=?pid,
-        hwnd=?hwnd,
-        recording_location=%recording_location.display(),
-        "Starting recording"
+    let mut recorder = Recorder::new(
+        || {
+            recording_location.join(
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs()
+                    .to_string(),
+            )
+        },
+        games,
     );
 
-    let mut recording = Recording::start(
-        MetadataParameters {
-            path: recording_location.join("metadata.json"),
-        },
-        WindowParameters {
-            path: recording_location.join("recording.mp4"),
-            pid,
-            hwnd,
-        },
-        InputParameters {
-            path: recording_location.join("inputs.csv"),
-        },
-    )
-    .await?;
+    recorder.start().await?;
 
     let mut input_rx = listen_for_raw_inputs();
 
     let mut stop_rx = wait_for_ctrl_c();
+
+    let mut idleness_tracker = IdlenessTracker::new(MAX_IDLE_DURATION);
+
+    let mut perform_checks = tokio::time::interval(Duration::from_secs(1));
+    perform_checks.set_missed_tick_behavior(MissedTickBehavior::Delay);
 
     loop {
         tokio::select! {
@@ -85,14 +80,39 @@ async fn main() -> Result<()> {
                 break;
             },
             e = input_rx.recv() => {
-                recording.seen_input(e.expect("raw input reader was closed early")).await?;
+                recorder.seen_input(e.expect("raw input reader was closed early")).await?;
+                if idleness_tracker.is_idle() {
+                    tracing::info!("Input detected, restarting recording");
+                    recorder.start().await?;
+                }
+                idleness_tracker.update_activity();
+            },
+            _ = perform_checks.tick(), if recorder.is_recording() => {
+                if idleness_tracker.is_idle() {
+                    tracing::info!("No input detected for 5 seconds, stopping recording");
+                    recorder.stop().await?;
+                }
+
+                if let Some(e) = recorder.elapsed() {
+                    if e > MAX_RECORDING_DURATION {
+                        tracing::info!("Recording duration exceeded {} s, restarting recording", MAX_RECORDING_DURATION.as_secs());
+                        recorder.stop().await?;
+                        recorder.start().await?;
+                        idleness_tracker.update_activity();
+                    }
+                };
+
+                if let Some(pid) = recorder.pid() {
+                    if !does_process_exist(pid)? {
+                        tracing::info!(pid=pid.0, "Game process no longer exists, stopping recording");
+                        recorder.stop().await?;
+                    }
+                }
             },
         }
     }
 
-    tracing::info!("Stopping recording...");
-
-    recording.stop().await?;
+    recorder.stop().await?;
 
     Ok(())
 }
@@ -104,7 +124,7 @@ fn listen_for_raw_inputs() -> mpsc::Receiver<raw_input::Event> {
         let mut raw_input = Some(RawInput::initialize().expect("raw input failed to initialize"));
 
         RawInput::run_queue(|event| {
-            if let Err(_) = input_tx.blocking_send(event) {
+            if input_tx.blocking_send(event).is_err() {
                 tracing::debug!("Input channel closed, stopping raw input listener");
                 raw_input.take();
             }
