@@ -3,7 +3,7 @@ mod hardware_id;
 mod input_recorder;
 mod recording;
 
-use std::{path::PathBuf, time::Duration};
+use std::path::PathBuf;
 
 use clap::Parser;
 use color_eyre::{
@@ -74,9 +74,7 @@ async fn main() -> Result<()> {
     )
     .await?;
 
-    let local_set = tokio::task::LocalSet::new();
-
-    let mut input_rx = listen_for_raw_inputs(&local_set);
+    let mut input_rx = listen_for_raw_inputs();
 
     let mut stop_rx = wait_for_ctrl_c();
 
@@ -99,18 +97,19 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-fn listen_for_raw_inputs(local_set: &tokio::task::LocalSet) -> mpsc::Receiver<raw_input::Event> {
+fn listen_for_raw_inputs() -> mpsc::Receiver<raw_input::Event> {
     let (input_tx, input_rx) = mpsc::channel(1);
 
-    local_set.spawn_local(async move {
-        let raw_input = RawInput::initialize(|e| input_tx.blocking_send(e).unwrap())
-            .expect("raw input failed to initialize");
-        loop {
-            raw_input
-                .poll_queue()
-                .expect("failed to run windows message queue");
-            tokio::time::sleep(Duration::from_millis(1000 / 60 / 20)).await;
-        }
+    std::thread::spawn(move || {
+        let mut raw_input = Some(RawInput::initialize().expect("raw input failed to initialize"));
+
+        RawInput::run_queue(|event| {
+            if let Err(_) = input_tx.blocking_send(event) {
+                tracing::debug!("Input channel closed, stopping raw input listener");
+                raw_input.take();
+            }
+        })
+        .expect("failed to run windows message queue");
     });
     input_rx
 }
