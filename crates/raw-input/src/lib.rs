@@ -11,7 +11,8 @@ use windows::{
             Input::{
                 self, GetRawInputData, HRAWINPUT,
                 KeyboardAndMouse::{VK_LBUTTON, VK_MBUTTON, VK_RBUTTON, VK_XBUTTON1, VK_XBUTTON2},
-                RAWINPUT, RAWINPUTDEVICE, RID_INPUT, RIDEV_INPUTSINK, RegisterRawInputDevices,
+                RAWINPUT, RAWINPUTDEVICE, RAWINPUTHEADER, RID_INPUT, RIDEV_INPUTSINK,
+                RegisterRawInputDevices,
             },
             WindowsAndMessaging::{
                 CREATESTRUCTA, CreateWindowExA, DefWindowProcA, DestroyWindow, DispatchMessageA,
@@ -183,10 +184,8 @@ where
                     LRESULT(0)
                 }
                 WindowsAndMessaging::WM_INPUT => {
-                    tracing::debug!(?lparam);
-                    let hrawinput: HRAWINPUT =
-                        *std::ptr::with_exposed_provenance_mut(lparam.0 as usize);
-                    tracing::debug!(?hrawinput);
+                    let hrawinput =
+                        HRAWINPUT(std::ptr::with_exposed_provenance_mut(lparam.0 as usize));
                     let mut rawinput = RAWINPUT::default();
                     let mut pcbsize = size_of_val(&rawinput) as u32;
                     let result = GetRawInputData(
@@ -194,7 +193,7 @@ where
                         RID_INPUT,
                         Some(&mut rawinput as *mut _ as *mut _),
                         &mut pcbsize,
-                        size_of_val(&hrawinput)
+                        size_of::<RAWINPUTHEADER>()
                             .try_into()
                             .expect("size of HRAWINPUT should fit in u32"),
                     );
@@ -206,6 +205,10 @@ where
                         GetWindowLongPtrA(hwnd, WINDOW_LONG_PTR_INDEX(0)) as *mut ProcInfo<C>;
                     let proc_info = &mut *proc_info_ptr;
                     let callback = &mut proc_info.event_callback;
+                    let mut callback = |event| {
+                        tracing::debug!(msg = "WM_INPUT", event=?event);
+                        callback(event);
+                    };
 
                     match Input::RID_DEVICE_INFO_TYPE(rawinput.header.dwType) {
                         Input::RIM_TYPEMOUSE => {
