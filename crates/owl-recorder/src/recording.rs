@@ -21,6 +21,7 @@ pub(crate) struct Recording {
     input_recorder: InputRecorder,
 
     metadata_path: PathBuf,
+    game_exe: String,
     start_time: SystemTime,
     start_instant: Instant,
 
@@ -30,6 +31,7 @@ pub(crate) struct Recording {
 
 pub(crate) struct MetadataParameters {
     pub(crate) path: PathBuf,
+    pub(crate) game_exe: String,
 }
 
 pub(crate) struct WindowParameters {
@@ -46,6 +48,7 @@ impl Recording {
     pub(crate) async fn start(
         MetadataParameters {
             path: metadata_path,
+            game_exe,
         }: MetadataParameters,
         #[cfg_attr(not(feature = "real-video"), expect(unused_variables))] WindowParameters {
             path: video_path,
@@ -75,12 +78,18 @@ impl Recording {
             input_recorder,
 
             metadata_path,
+            game_exe,
             start_time,
             start_instant,
 
             pid,
             hwnd,
         })
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn game_exe(&self) -> &str {
+        &self.game_exe
     }
 
     #[allow(dead_code)]
@@ -120,22 +129,33 @@ impl Recording {
 
         self.input_recorder.stop().await?;
 
-        Self::write_metadata(self.start_instant, self.start_time, &self.metadata_path).await?;
+        Self::write_metadata(
+            &self.metadata_path,
+            self.game_exe,
+            self.start_instant,
+            self.start_time,
+        )
+        .await?;
         Ok(())
     }
 
     async fn write_metadata(
+        path: &Path,
+        game_exe: String,
         start_instant: Instant,
         start_time: SystemTime,
-        path: &Path,
     ) -> Result<()> {
-        let metadata = Self::final_metadata(start_instant, start_time).await?;
+        let metadata = Self::final_metadata(game_exe, start_instant, start_time).await?;
         let metadata = serde_json::to_string_pretty(&metadata)?;
         tokio::fs::write(path, &metadata).await?;
         Ok(())
     }
 
-    async fn final_metadata(start_instant: Instant, start_time: SystemTime) -> Result<Metadata> {
+    async fn final_metadata(
+        game_exe: String,
+        start_instant: Instant,
+        start_time: SystemTime,
+    ) -> Result<Metadata> {
         let duration = start_instant.elapsed().as_secs_f32();
 
         let start_timestamp = start_time.duration_since(UNIX_EPOCH).unwrap().as_secs();
@@ -147,6 +167,7 @@ impl Recording {
         let hardware_id = hardware_id::get()?;
 
         Ok(Metadata {
+            game_exe,
             session_id: uuid::Uuid::new_v4().to_string(),
             hardware_id,
             start_timestamp,
@@ -158,6 +179,7 @@ impl Recording {
 
 #[derive(Serialize)]
 struct Metadata {
+    game_exe: String,
     session_id: String,
     hardware_id: String,
     start_timestamp: u64,

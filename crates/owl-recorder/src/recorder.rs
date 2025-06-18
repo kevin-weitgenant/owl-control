@@ -1,18 +1,19 @@
 use std::path::PathBuf;
 
+use bstr::ByteSlice as _;
 use color_eyre::{
     Result,
     eyre::{Context as _, OptionExt as _},
 };
 
 use crate::{
-    find_game::get_foregrounded_game,
+    find_game::{Game, get_foregrounded_game},
     recording::{InputParameters, MetadataParameters, Recording, WindowParameters},
 };
 
 pub(crate) struct Recorder<D> {
     recording_dir: D,
-    games: Vec<String>,
+    games: Vec<Game>,
     recording: Option<Recording>,
 }
 
@@ -20,7 +21,7 @@ impl<D> Recorder<D>
 where
     D: FnMut() -> PathBuf,
 {
-    pub(crate) fn new(recording_dir: D, games: Vec<String>) -> Self {
+    pub(crate) fn new(recording_dir: D, games: Vec<Game>) -> Self {
         Self {
             recording_dir,
             games,
@@ -42,15 +43,16 @@ where
         std::fs::create_dir_all(&recording_location)
             .wrap_err("Failed to create recording directory")?;
 
-        let (pid, hwnd) = get_foregrounded_game(&self.games)
+        let (game_exe, pid, hwnd) = get_foregrounded_game(&self.games)
             .wrap_err("failed to get foregrounded game")?
             .ok_or_eyre(
                 "No game window found. Make sure the game is running and in fullscreen mode.",
             )?;
 
         tracing::info!(
-            pid=?pid,
-            hwnd=?hwnd,
+            ?game_exe,
+            ?pid,
+            ?hwnd,
             recording_location=%recording_location.display(),
             "Starting recording"
         );
@@ -58,6 +60,7 @@ where
         let recording = Recording::start(
             MetadataParameters {
                 path: recording_location.join("metadata.json"),
+                game_exe: game_exe.to_str_lossy().into_owned(),
             },
             WindowParameters {
                 path: recording_location.join("recording.mp4"),

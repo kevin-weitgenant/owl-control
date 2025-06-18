@@ -23,7 +23,7 @@ use tokio::{
 #[cfg(feature = "real-video")]
 use video_audio_recorder::gstreamer;
 
-use crate::{idle::IdlenessTracker, keycode::lookup_keycode, recorder::Recorder};
+use crate::{find_game::Game, idle::IdlenessTracker, keycode::lookup_keycode, recorder::Recorder};
 
 #[derive(Parser, Debug)]
 #[command(version, about)]
@@ -57,6 +57,8 @@ async fn main() -> Result<()> {
         start_hotkey,
         stop_hotkey,
     } = Args::parse();
+
+    let games = games.into_iter().map(Game::new).collect();
 
     let start_hotkey = lookup_keycode(&start_hotkey)
         .ok_or_else(|| eyre!("Invalid start hotkey: {start_hotkey}"))?;

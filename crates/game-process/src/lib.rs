@@ -47,7 +47,7 @@ pub fn does_process_exist(Pid(pid): Pid) -> Result<bool, Error> {
     }
 }
 
-pub fn process_name_for_pid(Pid(pid): Pid) -> Result<CString> {
+pub fn exe_name_for_pid(Pid(pid): Pid) -> Result<CString> {
     unsafe {
         let process =
             CloseProcessOnDrop(OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid)?);

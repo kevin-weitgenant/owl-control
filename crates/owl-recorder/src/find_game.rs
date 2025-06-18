@@ -1,29 +1,39 @@
+use bstr::{BStr, BString, ByteSlice as _};
 use color_eyre::Result;
 use game_process::{
-    Pid, foreground_window, is_window_fullscreen, process_name_for_pid,
+    Pid, exe_name_for_pid, foreground_window, is_window_fullscreen,
     windows::Win32::Foundation::HWND,
 };
 
-pub(crate) fn get_foregrounded_game(games: &[String]) -> Result<Option<(Pid, HWND)>> {
+pub(crate) struct Game(String);
+
+impl Game {
+    pub(crate) fn new(name: String) -> Self {
+        Self(name.to_lowercase())
+    }
+
+    pub(crate) fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+pub(crate) fn get_foregrounded_game(games: &[Game]) -> Result<Option<(BString, Pid, HWND)>> {
     let (hwnd, pid) = foreground_window()?;
 
     if !is_window_fullscreen(hwnd)? {
         return Ok(None);
     }
 
-    let process_name = process_name_for_pid(pid)?;
-    if !is_process_game(process_name.as_bytes(), games) {
+    let exe_name = BString::new(exe_name_for_pid(pid)?.into_bytes());
+    if !is_process_game(exe_name.as_bstr(), games) {
         return Ok(None);
     }
 
-    Ok(Some((pid, hwnd)))
+    Ok(Some((exe_name, pid, hwnd)))
 }
 
-fn is_process_game(name: &[u8], games: &[String]) -> bool {
-    let Ok(exe_file) = str::from_utf8(name)
-        .inspect_err(|e| tracing::debug!("Failed to convert process name to string: {e}"))
-    else {
-        return false;
-    };
-    games.iter().any(|game| exe_file.contains(game))
+fn is_process_game(name: &BStr, games: &[Game]) -> bool {
+    games
+        .iter()
+        .any(|game| name.to_lowercase().contains_str(game.as_str()))
 }
