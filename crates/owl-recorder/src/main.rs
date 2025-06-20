@@ -3,6 +3,7 @@ mod hardware_id;
 mod idle;
 mod input_recorder;
 mod keycode;
+mod raw_input_debouncer;
 mod recorder;
 mod recording;
 
@@ -23,7 +24,10 @@ use tokio::{
 #[cfg(feature = "real-video")]
 use video_audio_recorder::gstreamer;
 
-use crate::{find_game::Game, idle::IdlenessTracker, keycode::lookup_keycode, recorder::Recorder};
+use crate::{
+    find_game::Game, idle::IdlenessTracker, keycode::lookup_keycode,
+    raw_input_debouncer::EventDebouncer, recorder::Recorder,
+};
 
 #[derive(Parser, Debug)]
 #[command(version, about)]
@@ -151,8 +155,12 @@ fn listen_for_raw_inputs() -> mpsc::Receiver<raw_input::Event> {
 
     std::thread::spawn(move || {
         let mut raw_input = Some(RawInput::initialize().expect("raw input failed to initialize"));
+        let mut debouncer = EventDebouncer::new();
 
         RawInput::run_queue(|event| {
+            if !debouncer.debounce(event) {
+                return;
+            }
             if input_tx.blocking_send(event).is_err() {
                 tracing::debug!("Input channel closed, stopping raw input listener");
                 raw_input.take();
