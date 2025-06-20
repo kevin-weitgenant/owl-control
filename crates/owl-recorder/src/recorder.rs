@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use bstr::ByteSlice as _;
 use color_eyre::{
     Result,
     eyre::{Context as _, OptionExt as _},
@@ -50,7 +49,7 @@ where
             )?;
 
         tracing::info!(
-            ?game_exe,
+            game_exe,
             ?pid,
             ?hwnd,
             recording_location=%recording_location.display(),
@@ -60,7 +59,7 @@ where
         let recording = Recording::start(
             MetadataParameters {
                 path: recording_location.join("metadata.json"),
-                game_exe: game_exe.to_str_lossy().into_owned(),
+                game_exe,
             },
             WindowParameters {
                 path: recording_location.join("recording.mp4"),

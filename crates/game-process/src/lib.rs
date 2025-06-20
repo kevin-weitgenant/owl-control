@@ -1,4 +1,7 @@
-use std::ffi::{CStr, CString};
+use std::{
+    ffi::{CStr, CString, OsString},
+    path::PathBuf,
+};
 
 use color_eyre::Result;
 
@@ -12,7 +15,7 @@ use windows::{
                 TH32CS_SNAPPROCESS,
             },
             Threading::{
-                GetExitCodeProcess, OpenProcess, PROCESS_NAME_WIN32,
+                GetExitCodeProcess, OpenProcess, PROCESS_NAME_NATIVE,
                 PROCESS_QUERY_LIMITED_INFORMATION, QueryFullProcessImageNameA,
             },
             WindowsProgramming::HW_PROFILE_INFOA,
@@ -47,7 +50,7 @@ pub fn does_process_exist(Pid(pid): Pid) -> Result<bool, Error> {
     }
 }
 
-pub fn exe_name_for_pid(Pid(pid): Pid) -> Result<CString> {
+pub fn exe_name_for_pid(Pid(pid): Pid) -> Result<PathBuf> {
     unsafe {
         let process =
             CloseProcessOnDrop(OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid)?);
@@ -56,11 +59,13 @@ pub fn exe_name_for_pid(Pid(pid): Pid) -> Result<CString> {
         let mut process_name_size = process_name.len() as u32;
         QueryFullProcessImageNameA(
             process.0,
-            PROCESS_NAME_WIN32,
+            PROCESS_NAME_NATIVE,
             PSTR(&mut process_name as *mut u8),
             &mut process_name_size,
         )?;
         let process_name = CString::new(&process_name[..process_name_size.try_into().unwrap()])?;
+        let process_name = OsString::from_encoded_bytes_unchecked(process_name.into_bytes());
+        let process_name = PathBuf::try_from(process_name)?;
         Ok(process_name)
     }
 }

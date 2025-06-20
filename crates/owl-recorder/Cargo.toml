@@ -16,7 +16,6 @@ color-eyre.workspace = true
 uuid.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-bstr.workspace = true
 
 [features]
 default = ["real-video"]
