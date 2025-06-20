@@ -20,6 +20,7 @@ pub(crate) fn get_foregrounded_game(games: &[Game]) -> Result<Option<(String, Pi
     let (hwnd, pid) = foreground_window()?;
 
     if !is_window_fullscreen(hwnd)? {
+        tracing::info!("Foregrounded window is not fullscreen");
         return Ok(None);
     }
 
@@ -31,6 +32,7 @@ pub(crate) fn get_foregrounded_game(games: &[Game]) -> Result<Option<(String, Pi
         .ok_or_eyre("Failed to convert exe name to unicode string")?
         .to_owned();
     if !is_process_game(&exe_name, games) {
+        tracing::info!("Foregrounded process '{exe_name}' is not a game");
         return Ok(None);
     }
 

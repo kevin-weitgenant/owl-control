@@ -1,9 +1,6 @@
 use std::path::PathBuf;
 
-use color_eyre::{
-    Result,
-    eyre::{Context as _, OptionExt as _},
-};
+use color_eyre::{Result, eyre::Context as _};
 
 use crate::{
     find_game::{Game, get_foregrounded_game},
@@ -42,11 +39,12 @@ where
         std::fs::create_dir_all(&recording_location)
             .wrap_err("Failed to create recording directory")?;
 
-        let (game_exe, pid, hwnd) = get_foregrounded_game(&self.games)
-            .wrap_err("failed to get foregrounded game")?
-            .ok_or_eyre(
-                "No game window found. Make sure the game is running and in fullscreen mode.",
-            )?;
+        let Some((game_exe, pid, hwnd)) =
+            get_foregrounded_game(&self.games).wrap_err("failed to get foregrounded game")?
+        else {
+            tracing::warn!("No game window found");
+            return Ok(());
+        };
 
         tracing::info!(
             game_exe,
