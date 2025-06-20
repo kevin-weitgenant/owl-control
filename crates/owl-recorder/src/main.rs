@@ -83,6 +83,7 @@ async fn main() -> Result<()> {
     let mut stop_rx = wait_for_ctrl_c();
 
     let mut idleness_tracker = IdlenessTracker::new(MAX_IDLE_DURATION);
+    let mut start_on_activity = false;
 
     let mut perform_checks = tokio::time::interval(Duration::from_secs(1));
     perform_checks.set_missed_tick_behavior(MissedTickBehavior::Delay);
@@ -103,10 +104,12 @@ async fn main() -> Result<()> {
                     } else if key == end_hotkey {
                         tracing::info!("Stop hotkey pressed, stopping recording");
                         recorder.stop().await?;
+                        start_on_activity = false;
                     }
-                } else if idleness_tracker.is_idle() {
+                } else if start_on_activity {
                     tracing::info!("Input detected, restarting recording");
                     recorder.start().await?;
+                    start_on_activity = false;
                 }
                 idleness_tracker.update_activity();
             },
@@ -118,6 +121,7 @@ async fn main() -> Result<()> {
                     } else if idleness_tracker.is_idle() {
                         tracing::info!("No input detected for 5 seconds, stopping recording");
                         recorder.stop().await?;
+                        start_on_activity = true;
                     } else if recording.elapsed() > MAX_RECORDING_DURATION {
                         tracing::info!("Recording duration exceeded {} s, restarting recording", MAX_RECORDING_DURATION.as_secs());
                         recorder.stop().await?;
