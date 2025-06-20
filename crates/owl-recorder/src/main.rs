@@ -39,10 +39,10 @@ struct Args {
     games: Vec<String>,
 
     #[arg(long, default_value = "F4")]
-    start_hotkey: String,
+    start_key: String,
 
     #[arg(long, default_value = "F5")]
-    stop_hotkey: String,
+    stop_key: String,
 }
 
 const MAX_IDLE_DURATION: Duration = Duration::from_secs(30);
@@ -58,16 +58,16 @@ async fn main() -> Result<()> {
     let Args {
         recording_location,
         games,
-        start_hotkey,
-        stop_hotkey,
+        start_key,
+        stop_key,
     } = Args::parse();
 
     let games = games.into_iter().map(Game::new).collect();
 
-    let start_hotkey = lookup_keycode(&start_hotkey)
-        .ok_or_else(|| eyre!("Invalid start hotkey: {start_hotkey}"))?;
-    let end_hotkey =
-        lookup_keycode(&stop_hotkey).ok_or_else(|| eyre!("Invalid stop hotkey: {stop_hotkey}"))?;
+    let start_key =
+        lookup_keycode(&start_key).ok_or_else(|| eyre!("Invalid start key: {start_key}"))?;
+    let stop_key =
+        lookup_keycode(&stop_key).ok_or_else(|| eyre!("Invalid stop key: {stop_key}"))?;
 
     let mut recorder = Recorder::new(
         || {
@@ -102,11 +102,11 @@ async fn main() -> Result<()> {
                 let e = e.expect("raw input reader was closed early");
                 recorder.seen_input(e).await?;
                 if let Some(key) = keycode_from_event(&e) {
-                    if key == start_hotkey {
-                        tracing::info!("Start hotkey pressed, starting recording");
+                    if key == start_key {
+                        tracing::info!("Start key pressed, starting recording");
                         recorder.start().await?;
-                    } else if key == end_hotkey {
-                        tracing::info!("Stop hotkey pressed, stopping recording");
+                    } else if key == stop_key {
+                        tracing::info!("Stop key pressed, stopping recording");
                         recorder.stop().await?;
                         start_on_activity = false;
                     }

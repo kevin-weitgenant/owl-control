@@ -32,10 +32,10 @@ extraResources:
     to: uv.lock
   - from: README.md
     to: README.md
-  - from: rawinputlib.dll
-    to: rawinputlib.dll
   - from: build-resources/downloads/uv/uv.exe
     to: uv.exe
+  - from: target\x86_64-pc-windows-msvc\release\owl-recorder.exe
+    to: owl-recorder.exe
 
 win:
   target:

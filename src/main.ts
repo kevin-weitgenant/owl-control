@@ -11,6 +11,20 @@ let tray: Tray | null = null;
 let pythonProcess: any = null;
 let isRecording = false;
 
+const GAME_LIST = [
+  'DOOMEternalx64vk',
+  'DOOMx64',
+  'FactoryGame',
+  'Titanfall2',
+  'SkyrimSE',
+  'TESV',
+  'Crysis3', 'Crysis3_x64', 'Crysis2', 'Crysis2_x64',
+  'OblivionRemastered',
+  'MCC-Win64-Shipping',
+  'farcry3', 'fc3', 'farcry4', 'farcry5', 'fc3_blooddragon',
+  'Cyberpunk2077'
+]
+
 // Secure store for credentials and preferences
 const secureStore = {
   credentials: {} as Record<string, string>,
@@ -65,7 +79,7 @@ function saveConfig() {
 // Check if authenticated
 function isAuthenticated() {
   return (
-    secureStore.credentials.apiKey && 
+    secureStore.credentials.apiKey &&
     secureStore.credentials.hasConsented === 'true'
   );
 }
@@ -138,12 +152,12 @@ function createSettingsWindow() {
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',  // macOS style
     title: 'OWL Control Settings'  // Window title
   });
-  
+
   // Directly load settings page with query parameters - single load
   settingsWindow.loadURL('file://' + path.join(__dirname, 'index.html?page=settings&direct=true#settings'));
-  
+
   // Use the global switch-to-widget handler from setupIpcHandlers
-  
+
   // Set up DOM ready handler to apply CSS immediately
   settingsWindow.webContents.on('dom-ready', () => {
     // Apply simple CSS to prevent white flash during load
@@ -152,7 +166,7 @@ function createSettingsWindow() {
       #root { background-color: #0c0c0f !important; }
     `);
   });
-  
+
   // Set credentials directly in localStorage after content is fully loaded
   settingsWindow.webContents.once('did-finish-load', () => {
     // Restore the original full CSS with detailed styling
@@ -247,10 +261,10 @@ function createSettingsWindow() {
         background-color: #13151a !important;
       }
     `;
-    
+
     // Inject CSS first
     settingsWindow.webContents.insertCSS(css);
-    
+
     // First set credentials to ensure auth works
     settingsWindow.webContents.executeJavaScript(`
       // Set credentials directly in localStorage
@@ -268,12 +282,12 @@ function createSettingsWindow() {
       // We're ready to show the window now
       true; // Return value for promise
     `)
-    .then(() => {
-      // After the page has applied dark theme, we can safely show the window
-      if (settingsWindow) {
-        settingsWindow.show();
-      }
-    });
+      .then(() => {
+        // After the page has applied dark theme, we can safely show the window
+        if (settingsWindow) {
+          settingsWindow.show();
+        }
+      });
   });
 
   settingsWindow.on('closed', () => {
@@ -285,18 +299,18 @@ function createSettingsWindow() {
 function createTray() {
   try {
     console.log('Creating tray icon - cyan with dark "OWL" text');
-    
+
     // Use a simple 16x16 image created directly with Electron's nativeImage
     const size = { width: 16, height: 16 };
     const icon = nativeImage.createEmpty();
-    
+
     // Define colors
     const cyan = { r: 66, g: 226, b: 245, a: 255 };    // #42E2F5 - Cyan background
     const dark = { r: 12, g: 12, b: 15, a: 255 };      // #0C0C0F - Dark text
-    
+
     // Create buffer for the icon
     const trayIconBuffer = Buffer.alloc(size.width * size.height * 4);
-    
+
     // First, fill the entire buffer with cyan (background)
     for (let i = 0; i < trayIconBuffer.length; i += 4) {
       trayIconBuffer[i] = cyan.r;     // R
@@ -304,27 +318,27 @@ function createTray() {
       trayIconBuffer[i + 2] = cyan.b; // B
       trayIconBuffer[i + 3] = cyan.a; // A
     }
-    
+
     // Define letters with points (1 = dark pixel, 0 = background)
     const textMap = [
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], // Row 0
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], // Row 1
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], // Row 2
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], // Row 3
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], // Row 4
-      [0,0,0,1,1,1,0,1,1,1,0,1,0,0,0,0], // Row 5: O W L
-      [0,0,0,1,0,1,0,1,0,1,0,1,0,0,0,0], // Row 6: O W L
-      [0,0,0,1,0,1,0,1,0,1,0,1,0,0,0,0], // Row 7: O W L
-      [0,0,0,1,0,1,0,1,1,1,0,1,0,0,0,0], // Row 8: O W L
-      [0,0,0,1,0,1,0,1,0,1,0,1,0,0,0,0], // Row 9: O W L
-      [0,0,0,1,1,1,0,1,0,1,0,1,1,1,0,0], // Row 10: O W L
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], // Row 11
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], // Row 12
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], // Row 13
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], // Row 14
-      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], // Row 15
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // Row 0
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // Row 1
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // Row 2
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // Row 3
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // Row 4
+      [0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0], // Row 5: O W L
+      [0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0], // Row 6: O W L
+      [0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0], // Row 7: O W L
+      [0, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0], // Row 8: O W L
+      [0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0], // Row 9: O W L
+      [0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0], // Row 10: O W L
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // Row 11
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // Row 12
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // Row 13
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // Row 14
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // Row 15
     ];
-    
+
     // Override the cyan background with text pixels
     for (let y = 0; y < size.height; y++) {
       for (let x = 0; x < size.width; x++) {
@@ -339,7 +353,7 @@ function createTray() {
         }
       }
     }
-    
+
     // Create the icon from the buffer data
     icon.addRepresentation({
       width: size.width,
@@ -347,19 +361,19 @@ function createTray() {
       buffer: trayIconBuffer,
       scaleFactor: 1.0
     });
-    
+
     console.log('Created cyan tray icon with OWL text');
-    
+
     // Create tray with our icon
     tray = new Tray(icon);
-    
+
     // On macOS, we can use a title to ensure visibility
     if (process.platform === 'darwin') {
       tray.setTitle('VG');
     }
-    
+
     updateTrayMenu();
-    
+
     // Double-click on tray icon opens settings
     tray.on('double-click', () => {
       if (isAuthenticated()) {
@@ -376,22 +390,22 @@ function createTray() {
 // Update the tray menu
 function updateTrayMenu() {
   if (!tray) return;
-  
+
   const menuTemplate = [];
-  
+
   // Add status item
   menuTemplate.push({
     label: isRecording ? 'Recording...' : 'Not Recording',
     enabled: false
   });
-  
+
   menuTemplate.push({ type: 'separator' });
-  
+
   // Remove recording controls from menu as Python bridge handles this independently
   if (isAuthenticated()) {
-    
+
     menuTemplate.push({ type: 'separator' });
-    
+
     menuTemplate.push({
       label: 'Settings',
       click: () => createSettingsWindow()
@@ -402,28 +416,28 @@ function updateTrayMenu() {
       click: () => createMainWindow()
     });
   }
-  
+
   menuTemplate.push({ type: 'separator' });
-  
+
   menuTemplate.push({
     label: 'Help',
     click: () => {
       shell.openExternal('https://openworldlabs.ai/contribute');
     }
   });
-  
+
   menuTemplate.push({
     label: 'Quit',
     click: () => {
       app.quit();
     }
   });
-  
+
   // Update tray icon color/label based on recording state
   if (process.platform === 'darwin') {
     tray.setTitle(isRecording ? 'Recording' : '');
   }
-  
+
   const contextMenu = Menu.buildFromTemplate(menuTemplate);
   tray.setContextMenu(contextMenu);
   tray.setToolTip(isRecording ? 'OWL Control - Recording' : 'OWL Control');
@@ -440,16 +454,19 @@ function startRecordingBridge(startKey: string, stopKey: string) {
       pythonProcess = null;
     }
 
-    console.log(`Starting recording bridge module from vg_control package`);
+    console.log(`Starting recording bridge`);
 
-    pythonProcess = spawn('uv', [
-      'run',
-      '-m',
-      'vg_control.recording_bridge',
+    pythonProcess = spawn(recorderCommand(), [
+      '--recording-location', "./data_dump/games/",
       '--start-key', startKey,
-      '--stop-key', stopKey
+      '--stop-key', stopKey,
+      ...GAME_LIST.flatMap(game => ['--games', game]),
     ], {
       cwd: rootDir(),
+      env: {
+        ...process.env,
+        PATH: `${process.env["GSTREAMER_1_0_ROOT_MSVC_X86_64"]}\bin;`
+      },
     });
 
     // Handle output
@@ -470,6 +487,14 @@ function startRecordingBridge(startKey: string, stopKey: string) {
   } catch (error) {
     console.error('Error starting recording bridge:', error);
     return false;
+  }
+}
+
+function recorderCommand() {
+  if (process.env.NODE_ENV === 'development') {
+    return String.raw`target\x86_64-pc-windows-msvc\debug\owl-recorder`;
+  } else {
+    return "owl-recorder";
   }
 }
 
@@ -516,27 +541,27 @@ function rootDir() {
 app.on('ready', () => {
   // Load config
   loadConfig();
-  
+
   // Set up IPC handlers
   setupIpcHandlers();
-  
+
   // Create the tray
   createTray();
-  
+
   // Start the Python bridges if authenticated
   if (isAuthenticated()) {
     const startKey = secureStore.preferences.startRecordingKey || 'f4';
     const stopKey = secureStore.preferences.stopRecordingKey || 'f5';
     const apiToken = secureStore.credentials.apiKey || '';
     const deleteUploadedFiles = secureStore.preferences.deleteUploadedFiles || false;
-    
+
     // Start the recording bridge
     startRecordingBridge(startKey, stopKey);
-    
+
     // Start the upload bridge
     startUploadBridge(apiToken, deleteUploadedFiles);
   }
-  
+
   // If not authenticated, show main window for setup
   if (!isAuthenticated()) {
     createMainWindow();
@@ -563,7 +588,7 @@ app.on('before-quit', () => {
     pythonProcess.kill();
     pythonProcess = null;
   }
-  
+
   // Additional cleanup if needed
 });
 
@@ -574,32 +599,32 @@ function setupIpcHandlers() {
   // Open directory dialog
   ipcMain.handle('open-directory-dialog', async () => {
     if (!mainWindow && !settingsWindow) return '';
-    
+
     const parentWindow = settingsWindow || mainWindow;
     const result = await dialog.showOpenDialog(parentWindow!, {
       properties: ['openDirectory']
     });
-    
+
     if (result.canceled || result.filePaths.length === 0) {
       return '';
     }
-    
+
     return result.filePaths[0];
   });
 
   // Open save dialog
   ipcMain.handle('open-save-dialog', async () => {
     if (!mainWindow && !settingsWindow) return '';
-    
+
     const parentWindow = settingsWindow || mainWindow;
     const result = await dialog.showSaveDialog(parentWindow!, {
       properties: ['createDirectory']
     });
-    
+
     if (result.canceled || !result.filePath) {
       return '';
     }
-    
+
     return result.filePath;
   });
 
@@ -608,12 +633,12 @@ function setupIpcHandlers() {
     try {
       secureStore.credentials[key] = value;
       saveConfig();
-      
+
       // Update tray menu if authentication state changed
       if (key === 'apiKey' || key === 'hasConsented') {
         updateTrayMenu();
       }
-      
+
       return { success: true };
     } catch (error) {
       console.error('Error saving credentials:', error);
@@ -636,21 +661,21 @@ function setupIpcHandlers() {
     try {
       secureStore.preferences = { ...secureStore.preferences, ...preferences };
       saveConfig();
-      
+
       // Restart the Python bridges with new preferences if authenticated
       if (isAuthenticated()) {
         const startKey = secureStore.preferences.startRecordingKey || 'f4';
         const stopKey = secureStore.preferences.stopRecordingKey || 'f5';
         const apiToken = secureStore.credentials.apiKey || '';
         const deleteUploadedFiles = secureStore.preferences.deleteUploadedFiles || false;
-        
+
         // Restart the recording bridge
         startRecordingBridge(startKey, stopKey);
-        
+
         // Restart the upload bridge
         startUploadBridge(apiToken, deleteUploadedFiles);
       }
-      
+
       return { success: true };
     } catch (error) {
       console.error('Error saving preferences:', error);
@@ -685,31 +710,31 @@ function setupIpcHandlers() {
     }
     return true;
   });
-  
+
   // Authentication completed
   ipcMain.handle('authentication-completed', async () => {
     updateTrayMenu();
-    
+
     // Start the Python bridges after authentication
     const startKey = secureStore.preferences.startRecordingKey || 'f4';
     const stopKey = secureStore.preferences.stopRecordingKey || 'f5';
     const apiToken = secureStore.credentials.apiKey || '';
     const deleteUploadedFiles = secureStore.preferences.deleteUploadedFiles || false;
-    
+
     // Start the recording bridge
     startRecordingBridge(startKey, stopKey);
-    
+
     // Start the upload bridge
     startUploadBridge(apiToken, deleteUploadedFiles);
-    
+
     // Close main window if it exists
     if (mainWindow) {
       mainWindow.close();
     }
-    
+
     return true;
   });
-  
+
   // Resize window for consent page
   ipcMain.handle('resize-for-consent', async () => {
     if (mainWindow) {
@@ -718,7 +743,7 @@ function setupIpcHandlers() {
     }
     return true;
   });
-  
+
   // Resize window for API key page
   ipcMain.handle('resize-for-api-key', async () => {
     if (mainWindow) {
