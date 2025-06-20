@@ -18,7 +18,7 @@ fn create_pipeline(path: &Path, _pid: u32, hwnd: usize) -> Result<Pipeline> {
     // Add the following parameters once it's fixed: remove loopback=true and add "loopback-target-pid={pid} loopback-mode=include-process-tree"
     let video = format!(
             "
-            d3d12screencapturesrc window-handle={hwnd} capture-api=wgc
+            d3d12screencapturesrc window-handle={hwnd}
             ! encoder.video_0
 
             wasapi2src loopback=true
