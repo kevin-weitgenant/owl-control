@@ -16,7 +16,7 @@ use clap::Parser;
 use color_eyre::{Result, eyre::eyre};
 
 use game_process::does_process_exist;
-use raw_input::RawInput;
+use raw_input::{PressState, RawInput};
 use tokio::{
     sync::{mpsc, oneshot},
     time::MissedTickBehavior,
@@ -143,7 +143,11 @@ async fn main() -> Result<()> {
 }
 
 fn keycode_from_event(event: &raw_input::Event) -> Option<u16> {
-    if let raw_input::Event::KeyPress { key, .. } = event {
+    if let raw_input::Event::KeyPress {
+        key,
+        press_state: PressState::Pressed,
+    } = event
+    {
         Some(*key)
     } else {
         None
