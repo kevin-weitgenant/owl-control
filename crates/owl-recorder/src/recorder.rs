@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use color_eyre::{Result, eyre::Context as _};
+use tauri_winrt_notification::Toast;
 
 use crate::{
     find_game::{Game, get_foregrounded_game},
@@ -43,6 +44,7 @@ where
             get_foregrounded_game(&self.games).wrap_err("failed to get foregrounded game")?
         else {
             tracing::warn!("No game window found");
+            Self::show_invalid_game_notification();
             return Ok(());
         };
 
@@ -70,6 +72,8 @@ where
         )
         .await?;
 
+        Self::show_start_notification(recording.game_exe());
+
         self.recording = Some(recording);
 
         Ok(())
@@ -87,7 +91,45 @@ where
         let Some(recording) = self.recording.take() else {
             return Ok(());
         };
+
+        Self::show_stop_notification(recording.game_exe());
+
         recording.stop().await?;
+
         Ok(())
+    }
+
+    fn show_start_notification(exe_name: &str) {
+        if let Err(e) = Toast::new(Toast::POWERSHELL_APP_ID)
+            .title("Started recording")
+            .text1(&format!("Recording {exe_name}"))
+            .sound(None)
+            .show()
+        {
+            tracing::error!("Failed to show start notification: {e}");
+        };
+    }
+
+    fn show_invalid_game_notification() {
+        if let Err(e) = Toast::new(Toast::POWERSHELL_APP_ID)
+            .title("Invalid game")
+            .text1(&format!("Not recording foreground window."))
+            .text2("It's either not a supported game or not fullscreen.")
+            .sound(None)
+            .show()
+        {
+            tracing::error!("Failed to show invalid game notification: {e}");
+        };
+    }
+
+    fn show_stop_notification(exe_name: &str) {
+        if let Err(e) = Toast::new(Toast::POWERSHELL_APP_ID)
+            .title("Stopped recording")
+            .text1(&format!("No longer recording {exe_name}"))
+            .sound(None)
+            .show()
+        {
+            tracing::error!("Failed to show stop notification: {e}");
+        };
     }
 }
