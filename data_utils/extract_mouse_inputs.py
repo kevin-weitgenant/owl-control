@@ -1,3 +1,4 @@
+import json
 from .config import (
     FPS, 
     ROOT_DIR, 
@@ -43,7 +44,7 @@ def process_video(video_dir, return_tensor = False):
     mouse_moves['frame'] = (mouse_moves['timestamp'] // frame_duration).astype(int)
     
     # Parse movement deltas
-    mouse_moves['event_args'] = mouse_moves['event_args'].apply(eval)
+    mouse_moves['event_args'] = mouse_moves['event_args'].apply(json.loads)
     mouse_moves[['dx', 'dy']] = pd.DataFrame(
         mouse_moves['event_args'].tolist(), 
         index=mouse_moves.index

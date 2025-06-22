@@ -2,6 +2,7 @@
 Button presses
 """
 
+import json
 import os
 import numpy as np
 import pandas as pd
@@ -58,8 +59,8 @@ def get_button_stats(csv_path):
     keyboard_data = button_data[button_data['event_type'] == 'KEYBOARD'].reset_index(drop=True)
     
     # Extract keycodes and press states
-    keyboard_data['keycode'] = keyboard_data['event_args'].apply(lambda x: eval(x)[0])
-    keyboard_data['is_pressed'] = keyboard_data['event_args'].apply(lambda x: eval(x)[1])
+    keyboard_data['keycode'] = keyboard_data['event_args'].apply(lambda x: json.loads(x)[0])
+    keyboard_data['is_pressed'] = keyboard_data['event_args'].apply(lambda x: json.loads(x)[1])
     
     # Calculate stats
     wasd_presses = keyboard_data[

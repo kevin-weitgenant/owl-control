@@ -1,3 +1,4 @@
+import json
 from .config import (
     FPS, 
     ROOT_DIR, 
@@ -58,31 +59,31 @@ def process_video(video_dir, return_tensor = False):
     # Filter for keys of interest
     keyboard_mask = button_data['event_type'] == 'KEYBOARD'
     keyboard_events = button_data[keyboard_mask].copy()
-    keyboard_events.loc[:, 'keycode'] = keyboard_events['event_args'].apply(lambda x: eval(x)[0])
+    keyboard_events.loc[:, 'keycode'] = keyboard_events['event_args'].apply(lambda x: json.loads(x)[0])
     button_data = button_data[~((button_data['event_type'] == 'KEYBOARD') & (~keyboard_events['keycode'].isin(valid_codes)))].reset_index(drop=True)
 
     # Filter for LMB or RMB only
     mouse_mask = button_data['event_type'] == 'MOUSE_BUTTON'
     mouse_events = button_data[mouse_mask].copy()
-    mouse_events.loc[:, 'button'] = mouse_events['event_args'].apply(lambda x: eval(x)[0])
+    mouse_events.loc[:, 'button'] = mouse_events['event_args'].apply(lambda x: json.loads(x)[0])
     button_data = button_data[~((button_data['event_type'] == 'MOUSE_BUTTON') & (~mouse_events['button'].isin([1,2])))].reset_index(drop=True)
 
     # Convert keyboard events to UP/DOWN
     keyboard_mask = button_data['event_type'] == 'KEYBOARD'
     keyboard_rows = button_data[keyboard_mask].copy()
-    keyboard_rows.loc[:, 'is_pressed'] = keyboard_rows['event_args'].apply(lambda x: eval(x)[1])
+    keyboard_rows.loc[:, 'is_pressed'] = keyboard_rows['event_args'].apply(lambda x: json.loads(x)[1])
     keyboard_rows.loc[keyboard_rows['is_pressed'], 'event_type'] = 'KEY_DOWN'
     keyboard_rows.loc[~keyboard_rows['is_pressed'], 'event_type'] = 'KEY_UP'
-    keyboard_rows.loc[:, 'event_args'] = keyboard_rows['event_args'].apply(lambda x: get_ascii(eval(x)[0]))
+    keyboard_rows.loc[:, 'event_args'] = keyboard_rows['event_args'].apply(lambda x: get_ascii(json.loads(x)[0]))
     button_data.loc[keyboard_mask] = keyboard_rows
 
     # Convert mouse events to UP/DOWN
     mouse_mask = button_data['event_type'] == 'MOUSE_BUTTON'
     mouse_rows = button_data[mouse_mask].copy()
-    mouse_rows.loc[:, 'is_pressed'] = mouse_rows['event_args'].apply(lambda x: eval(x)[1])
+    mouse_rows.loc[:, 'is_pressed'] = mouse_rows['event_args'].apply(lambda x: json.loads(x)[1])
     mouse_rows.loc[mouse_rows['is_pressed'], 'event_type'] = 'MOUSE_DOWN'
     mouse_rows.loc[~mouse_rows['is_pressed'], 'event_type'] = 'MOUSE_UP'
-    mouse_rows.loc[:, 'event_args'] = mouse_rows['event_args'].apply(lambda x: 'LMB' if eval(x)[0] == 1 else 'RMB')
+    mouse_rows.loc[:, 'event_args'] = mouse_rows['event_args'].apply(lambda x: 'LMB' if json.loads(x)[0] == 1 else 'RMB')
     button_data.loc[mouse_mask] = mouse_rows
 
     # Assign frames
