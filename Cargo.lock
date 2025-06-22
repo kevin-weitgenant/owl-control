@@ -313,7 +313,7 @@ dependencies = [
 
 [[package]]
 name = "game-process"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "color-eyre",
  "windows 0.60.0",
@@ -752,7 +752,7 @@ checksum = "74765f6d916ee2faa39bc8e68e4f3ed8949b48cccdac59983d287a7cb71ce9c5"
 
 [[package]]
 name = "raw-input"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "color-eyre",
  "tracing",
@@ -1146,7 +1146,7 @@ checksum = "852e951cb7832cb45cb1169900d19760cfa39b82bc0ea9c0e5a14ae88411c98b"
 
 [[package]]
 name = "video-audio-recorder"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "clap",
  "color-eyre",
