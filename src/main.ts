@@ -22,7 +22,8 @@ const GAME_LIST = [
   'OblivionRemastered',
   'MCC-Win64-Shipping',
   'farcry3', 'fc3', 'farcry4', 'farcry5', 'fc3_blooddragon',
-  'Cyberpunk2077'
+  'Cyberpunk2077',
+  'Frog_Detective',
 ]
 
 // Secure store for credentials and preferences
