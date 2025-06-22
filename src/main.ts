@@ -534,7 +534,11 @@ function startUploadBridge(apiToken: string, deleteUploadedFiles: boolean) {
 }
 
 function rootDir() {
-  return path.join(__dirname, '..', '..');
+  if (process.env.NODE_ENV === 'development') {
+    return ".";
+  } else {
+    return path.join(__dirname, '..', '..');
+  }
 }
 
 // App ready event
