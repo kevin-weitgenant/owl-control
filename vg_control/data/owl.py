@@ -132,8 +132,8 @@ class OWLDataManager:
 
                 try:
                     invalid = filter_invalid_sample(mp4_src_path, csv_src_path, meta_src_path, verbose = True)
-                except:
-                    print("Warning: Invalid data skipped by uploader.")
+                except Exception as e:
+                    print(f"Warning: Invalid data skipped by uploader: {e}")
                     invalid = True
 
                 if invalid:
