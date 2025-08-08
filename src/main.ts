@@ -25,6 +25,7 @@ const GAME_LIST = [
   'Cyberpunk2077',
   'Frog_Detective',
   'GeometryDash',
+  'BlackOpsColdWar', 'cod'
 ]
 
 // Secure store for credentials and preferences

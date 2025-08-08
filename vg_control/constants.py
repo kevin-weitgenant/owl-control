@@ -6,7 +6,7 @@ Constants used throughout the application
 FPS = 60  # Frames per second for tracking
 MIN_FOOTAGE = 30 # This many seconds needed before something is "worth saving"
 MAX_FOOTAGE = 60*10 # How long should each individual clip be?
-INACTIVITY_TIME = 20 # No input for this long = stop recording
+INACTIVITY_TIME = 30 # No input for this long = stop recording [THIS IS SEPARATE IN RUST, LOOK FOR MAX_IDLE_DURATION]
 TIME_TO_STOP = 5 # How long do we think it will take OBS to stop recording?
 
 # Video recording settings
@@ -24,7 +24,7 @@ DATA_FILE_FORMAT = "vgc"  # OWL Control data format
 ROOT_DIR = "./data_dump/games/" # User should be able to set this, but we will need to use it
 POLLS_PER_FRAME=20 # Hard coded
 
-GAME_LIST = [
+GAME_LIST = [ # Make sure this matches src/main.ts
     'DOOMEternalx64vk',
     'DOOMx64',
     'FactoryGame',
@@ -36,5 +36,6 @@ GAME_LIST = [
     'MCC-Win64-Shipping',
     'farcry3', 'fc3', 'farcry4', 'farcry5', 'fc3_blooddragon',
     'Cyberpunk2077',
-    'GeometryDash'
+    'GeometryDash',
+    'BlackOpsColdWar', 'cod'
 ]
