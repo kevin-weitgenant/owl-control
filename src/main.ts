@@ -459,8 +459,6 @@ function startRecordingBridge(startKey: string, stopKey: string) {
 
     console.log(`Starting recording bridge`);
 
-    const gstreamer_bin = `${process.env["GSTREAMER_1_0_ROOT_MSVC_X86_64"]}\\bin`;
-
     pythonProcess = spawn(recorderCommand(), [
       '--recording-location', "./data_dump/games/",
       '--start-key', startKey,
@@ -468,10 +466,6 @@ function startRecordingBridge(startKey: string, stopKey: string) {
       ...GAME_LIST.flatMap(game => ['--games', game]),
     ], {
       cwd: rootDir(),
-      env: {
-        ...process.env,
-        PATH: `${gstreamer_bin};${process.env["PATH"]}`,
-      },
     });
 
     // Handle output
