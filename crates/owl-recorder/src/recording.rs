@@ -62,7 +62,7 @@ impl Recording {
 
         #[cfg(feature = "real-video")]
         let window_recorder =
-            WindowRecorder::start_recording(&video_path, pid.0, hwnd.0.expose_provenance())?;
+            WindowRecorder::start_recording(&video_path, pid.0, hwnd.0.expose_provenance()).await?;
         #[cfg(feature = "real-video")]
         let window_recorder_listener =
             AbortOnDropHandle::new(tokio::task::spawn(window_recorder.listen_to_messages()));

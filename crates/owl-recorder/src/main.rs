@@ -21,8 +21,6 @@ use tokio::{
     sync::{mpsc, oneshot},
     time::MissedTickBehavior,
 };
-#[cfg(feature = "real-video")]
-use video_audio_recorder::gstreamer;
 
 use crate::{
     find_game::Game, idle::IdlenessTracker, keycode::lookup_keycode,
@@ -52,8 +50,6 @@ const MAX_RECORDING_DURATION: Duration = Duration::from_secs(60 * 10);
 async fn main() -> Result<()> {
     color_eyre::install()?;
     tracing_subscriber::fmt::init();
-    #[cfg(feature = "real-video")]
-    gstreamer::init()?;
 
     let Args {
         recording_location,

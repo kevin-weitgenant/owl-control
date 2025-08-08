@@ -1,103 +1,244 @@
-use std::path::Path;
+use std::{
+    path::Path,
+    process::Stdio,
+    sync::Arc,
+    time::Duration,
+};
 
 use color_eyre::{
     Result,
-    eyre::{Context, ContextCompat as _, OptionExt as _, eyre},
+    eyre::{Context, OptionExt as _, eyre},
 };
-use futures_util::StreamExt as _;
-use gstreamer::{
-    Pipeline,
-    glib::object::Cast,
-    prelude::{ElementExt as _, ElementExtManual as _, GObjectExtManualGst as _, GstBinExt as _},
+use futures_util::Future;
+use serde::{Deserialize, Serialize};
+use tokio::{
+    io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
+    process::Child as TokioChild,
+    sync::Mutex,
+    time::timeout,
 };
 
-pub use gstreamer;
-
-fn create_pipeline(path: &Path, _pid: u32, hwnd: usize) -> Result<Pipeline> {
-    // Loopback is bugged: gstreamer/gstreamer#4259
-    // Add the following parameters once it's fixed: remove loopback=true and add "loopback-target-pid={pid} loopback-mode=include-process-tree"
-    let video = format!(
-            "
-            d3d12screencapturesrc window-handle={hwnd}
-            ! encoder.video_0
-
-            wasapi2src loopback=true
-            ! encoder.audio_0
-
-            encodebin2 name=encoder profile=video/quicktime,variant=iso:video/x-raw,width=1920,height=1080,framerate=60/1->video/x-h264:audio/x-raw,channels=2,rate=48000->audio/mpeg,mpegversion=1,layer=3
-            ! filesink name=filesink
-        "
-        );
-
-    let pipeline = gstreamer::parse::launch(&video)?
-        .dynamic_cast::<Pipeline>()
-        .expect("Failed to cast element to pipeline");
-    let filesink = pipeline
-        .by_name("filesink")
-        .wrap_err("Failed to find 'filesink' element")?;
-    filesink.set_property_from_str(
-        "location",
-        path.to_str().ok_or_eyre("Path must be valid UTF-8")?,
-    );
-
-    tracing::debug!("Created pipeline");
-
-    Ok(pipeline)
+#[derive(Serialize, Deserialize, Debug)]
+struct BridgeMessage {
+    #[serde(rename = "type")]
+    message_type: String,
+    data: serde_json::Value,
+    timestamp: f64,
 }
 
-#[derive(derive_more::From, derive_more::Deref, derive_more::DerefMut)]
-pub struct NullPipelineOnDrop(Pipeline);
+#[derive(Serialize, Deserialize, Debug)]
+struct BridgeCommand {
+    #[serde(rename = "type")]
+    command_type: String,
+    data: serde_json::Value,
+}
 
-impl Drop for NullPipelineOnDrop {
-    fn drop(&mut self) {
-        tracing::debug!("Setting pipeline to Null state on drop");
-        if let Err(e) = self.set_state(gstreamer::State::Null) {
-            tracing::error!(message = "Failed to set pipeline to Null state", error = ?e);
-        } else {
-            tracing::debug!("Set pipeline to Null state successfully");
-        }
-    }
+struct OBSBridgeProcess {
+    child: Arc<Mutex<Option<TokioChild>>>,
+    stdin: Arc<Mutex<Option<tokio::process::ChildStdin>>>,
 }
 
 pub struct WindowRecorder {
-    pipeline: NullPipelineOnDrop,
+    bridge: OBSBridgeProcess,
+    #[allow(dead_code)]
+    recording_path: String,
 }
 
 impl WindowRecorder {
-    pub fn start_recording(path: &Path, pid: u32, hwnd: usize) -> Result<WindowRecorder> {
-        let pipeline = create_pipeline(path, pid, hwnd)?;
-        pipeline
-            .set_state(gstreamer::State::Playing)
-            .wrap_err("failed to set pipeline state to Playing")?;
-        Ok(WindowRecorder {
-            pipeline: pipeline.into(),
-        })
+    pub async fn start_recording(path: &Path, _pid: u32, _hwnd: usize) -> Result<WindowRecorder> {
+        let recording_dir = path.parent()
+            .ok_or_eyre("Recording path must have a parent directory")?;
+        
+        // Convert to absolute path for OBS
+        let absolute_recording_path = std::fs::canonicalize(recording_dir)
+            .wrap_err("Failed to get absolute path for recording directory")?;
+        
+        let recording_path = absolute_recording_path.to_str()
+            .ok_or_eyre("Path must be valid UTF-8")?;
+
+        tracing::debug!("Starting OBS bridge process");
+        
+        // Start the Python OBS bridge process
+        let mut command = tokio::process::Command::new("python")
+            .arg("-m")
+            .arg("vg_control.video.obs_bridge")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .wrap_err("Failed to spawn OBS bridge process")?;
+
+        let stdin = command.stdin.take()
+            .ok_or_eyre("Failed to get stdin handle")?;
+        let stdout = command.stdout.take()
+            .ok_or_eyre("Failed to get stdout handle")?;
+        
+        let bridge = OBSBridgeProcess {
+            child: Arc::new(Mutex::new(Some(command))),
+            stdin: Arc::new(Mutex::new(Some(stdin))),
+        };
+
+        let recorder = WindowRecorder {
+            bridge,
+            recording_path: recording_path.to_string(),
+        };
+
+        // Wait for ready message
+        let reader = BufReader::new(stdout);
+        let mut lines = reader.lines();
+        
+        if let Some(line) = timeout(Duration::from_secs(10), lines.next_line()).await?? {
+            let message: BridgeMessage = serde_json::from_str(&line)
+                .wrap_err("Failed to parse ready message")?;
+            
+            if message.message_type != "ready" {
+                return Err(eyre!("Expected ready message, got: {}", message.message_type));
+            }
+            tracing::debug!("OBS bridge is ready");
+        } else {
+            return Err(eyre!("No ready message received from OBS bridge"));
+        }
+
+        // Initialize OBS
+        recorder.send_command("initialize", serde_json::json!({
+            "recording_path": recording_path
+        })).await?;
+
+        // Read initialize response
+        if let Some(line) = timeout(Duration::from_secs(5), lines.next_line()).await?? {
+            tracing::debug!("Raw initialize response: {}", line);
+            let message: BridgeMessage = serde_json::from_str(&line)
+                .wrap_err_with(|| format!("Failed to parse initialize response: '{}'", line))?;
+            
+            if message.message_type == "error" {
+                return Err(eyre!("OBS initialization failed: {}", message.data.get("message").unwrap_or(&serde_json::Value::String("Unknown error".to_string()))));
+            } else if message.message_type != "initialized" {
+                return Err(eyre!("Expected initialized message, got: {}", message.message_type));
+            }
+            tracing::debug!("OBS initialized successfully");
+        } else {
+            return Err(eyre!("No initialize response received from OBS bridge"));
+        }
+
+        // Start recording
+        recorder.send_command("start", serde_json::json!({})).await?;
+
+        // Read start response
+        if let Some(line) = timeout(Duration::from_secs(5), lines.next_line()).await?? {
+            let message: BridgeMessage = serde_json::from_str(&line)
+                .wrap_err("Failed to parse start response")?;
+            
+            if message.message_type == "error" {
+                return Err(eyre!("OBS start recording failed: {}", message.data.get("message").unwrap_or(&serde_json::Value::String("Unknown error".to_string()))));
+            } else if message.message_type != "start_requested" {
+                tracing::warn!("Expected start_requested message, got: {}", message.message_type);
+            }
+            tracing::debug!("OBS start recording requested");
+        } else {
+            return Err(eyre!("No start response received from OBS bridge"));
+        }
+
+        tracing::debug!("OBS recording started successfully");
+        Ok(recorder)
+    }
+
+    async fn send_command(&self, command_type: &str, data: serde_json::Value) -> Result<()> {
+        let command = BridgeCommand {
+            command_type: command_type.to_string(),
+            data,
+        };
+        
+        let command_json = serde_json::to_string(&command)?
+            .replace('\n', "") + "\n";
+
+        let mut stdin_guard = self.bridge.stdin.lock().await;
+        if let Some(stdin) = stdin_guard.as_mut() {
+            stdin.write_all(command_json.as_bytes()).await
+                .wrap_err("Failed to write command to OBS bridge")?;
+            stdin.flush().await
+                .wrap_err("Failed to flush stdin")?;
+        } else {
+            return Err(eyre!("OBS bridge stdin not available"));
+        }
+
+        Ok(())
     }
 
     pub fn listen_to_messages(&self) -> impl Future<Output = Result<()>> + use<> {
-        let bus = self.pipeline.bus().unwrap();
         async move {
-            while let Some(msg) = bus.stream().next().await {
-                use gstreamer::MessageView;
-
-                match msg.view() {
-                    MessageView::Eos(..) => {
-                        tracing::debug!("Received EOS from bus");
-                        break;
-                    }
-                    MessageView::Error(err) => {
-                        return Err(eyre!(err.error()).wrap_err("Received error message from bus"));
-                    }
-                    _ => (),
-                };
-            }
+            // For now, just wait - we could implement proper message handling later
+            // The OBS bridge will handle recording state internally
+            tokio::time::sleep(Duration::from_millis(100)).await;
             Ok(())
         }
     }
 
     pub fn stop_recording(&self) {
-        tracing::debug!("Sending EOS event to pipeline");
-        self.pipeline.send_event(gstreamer::event::Eos::new());
-        tracing::debug!("Sent EOS event to pipeline");
+        tracing::debug!("Stopping OBS recording");
+        let stdin = self.bridge.stdin.clone();
+        
+        tokio::spawn(async move {
+            let command = BridgeCommand {
+                command_type: "stop".to_string(),
+                data: serde_json::json!({}),
+            };
+            
+            let command_json = match serde_json::to_string(&command) {
+                Ok(json) => json + "\n",
+                Err(e) => {
+                    tracing::error!("Failed to serialize stop command: {}", e);
+                    return;
+                }
+            };
+
+            let mut stdin_guard = stdin.lock().await;
+            if let Some(stdin) = stdin_guard.as_mut() {
+                if let Err(e) = stdin.write_all(command_json.as_bytes()).await {
+                    tracing::error!("Failed to send stop command: {}", e);
+                }
+                if let Err(e) = stdin.flush().await {
+                    tracing::error!("Failed to flush stop command: {}", e);
+                }
+            }
+        });
+    }
+}
+
+impl Drop for WindowRecorder {
+    fn drop(&mut self) {
+        tracing::debug!("Shutting down OBS bridge process");
+        
+        // Send shutdown command (fire and forget)
+        tokio::spawn({
+            let stdin = self.bridge.stdin.clone();
+            let child = self.bridge.child.clone();
+            
+            async move {
+                // Try to send shutdown command
+                let shutdown_cmd = match serde_json::to_string(&BridgeCommand {
+                    command_type: "shutdown".to_string(),
+                    data: serde_json::json!({}),
+                }) {
+                    Ok(json) => json + "\n",
+                    Err(_) => return,
+                };
+                
+                if let Ok(mut stdin_guard) = stdin.try_lock() {
+                    if let Some(stdin) = stdin_guard.as_mut() {
+                        let _ = stdin.write_all(shutdown_cmd.as_bytes()).await;
+                        let _ = stdin.flush().await;
+                    }
+                }
+                
+                // Wait a bit then kill if needed
+                tokio::time::sleep(Duration::from_millis(500)).await;
+                
+                if let Ok(mut child_guard) = child.try_lock() {
+                    if let Some(child) = child_guard.as_mut() {
+                        let _ = child.kill().await;
+                    }
+                }
+            }
+        });
     }
 }

@@ -24,6 +24,7 @@ const GAME_LIST = [
   'farcry3', 'fc3', 'farcry4', 'farcry5', 'fc3_blooddragon',
   'Cyberpunk2077',
   'Frog_Detective',
+  'GeometryDash',
 ]
 
 // Secure store for credentials and preferences

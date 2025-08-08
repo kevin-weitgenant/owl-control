@@ -2,11 +2,12 @@ from typing import Callable
 
 import obsws_python as obs
 import time
+import sys
 
 import os
 import subprocess
 
-from ..constants import FPS
+from ..constants import FPS, RECORDING_WIDTH, RECORDING_HEIGHT, VIDEO_BITRATE, SET_ENCODER
 
 """
 OBS websocket association with params on OBS client is finnicky. Listing a few so I don't forget.
@@ -66,7 +67,21 @@ class OBSClient:
                 end_callback(time.perf_counter())
 
         self.event_client.callback.register(on_record_state_changed)
+        
+        # Convert forward slashes to backslashes for Windows
+        # Write recording path to debug log
+        recording_path = recording_path.replace("\\\\?\\", "")
         self.req_client.set_profile_parameter("SimpleOutput", "FilePath", recording_path)
+        
+        # Give OBS a moment to process the path change
+        time.sleep(0.5)
+        
+        # Verify the path was set correctly
+        try:
+            current_path = self.req_client.get_profile_parameter("SimpleOutput", "FilePath")
+            print(f"OBS confirmed recording path: {current_path}", file=sys.stderr)
+        except Exception as e:
+            print(f"Warning: Could not verify recording path: {e}", file=sys.stderr)
 
         # Monitor/resolution info
         ml = self.req_client.get_monitor_list().monitors
@@ -79,8 +94,8 @@ class OBSClient:
             1,
             monitor_width,
             monitor_height,
-            1920,
-            1080,
+            RECORDING_WIDTH,
+            RECORDING_HEIGHT,
         )
 
         profile_list = self.req_client.get_profile_list()
@@ -99,21 +114,17 @@ class OBSClient:
         # Check if a game capture source exists
         inputs = self.req_client.get_input_list().inputs
         input_names = [d['inputName'] for d in inputs]
-        if 'owl_game_capture' in input_names:
-            # Delete it so we can recreate with right settings
-            self.req_client.remove_input('owl_game_capture')
-            time.sleep(0.5) # Give it a second to refresh
-
-        self.req_client.create_input(
-            "owl_data_collection_scene",
-            "owl_game_capture",
-            "game_capture",
-            {
-                'capture_mode' : 'any_fullscreen',
-                'capture_audio' : True
-            },
-            True
-        )
+        if not 'owl_game_capture' in input_names:
+            self.req_client.create_input(
+                "owl_data_collection_scene",
+                "owl_game_capture",
+                "game_capture",
+                {
+                    'capture_mode' : 'any_fullscreen',
+                    'capture_audio' : True
+                },
+                True
+            )
 
         # Audio settings
         self.req_client.set_input_volume('Mic/Aux', None, -100)
@@ -140,13 +151,20 @@ class OBSClient:
         # Init the profile, make sure all params are right
         self.req_client.set_current_profile('owl_data_recorder')
         self.req_client.set_profile_parameter("SimpleOutput", "RecQuality", "Stream")
-        self.req_client.set_profile_parameter("SimpleOutput", "VBitrate", "2000")
-        self.req_client.set_profile_parameter("SimpleOutput", "Preset", "veryfast")
+        self.req_client.set_profile_parameter("SimpleOutput", "VBitrate", str(VIDEO_BITRATE))
         self.req_client.set_profile_parameter("Output", "Mode", "Simple")
         self.req_client.set_profile_parameter("SimpleOutput", "RecFormat2", "mp4")
-        #self.req_client.set_profile_parameter("SimpleOutput", "NVENCPreset2", "p7")
-        self.req_client.set_profile_parameter("SimpleOutput", "StreamEncoder", "x264")
-        self.req_client.set_profile_parameter("SimpleOutput", "Preset", "veryfast")
+        
+        # Conditional encoder settings - only override if SET_ENCODER is True
+        if SET_ENCODER:
+            print("Setting custom encoder settings", file=sys.stderr)
+            self.req_client.set_profile_parameter("SimpleOutput", "StreamEncoder", "x264")
+            self.req_client.set_profile_parameter("SimpleOutput", "Preset", "veryfast")
+            # Keep commented NVENC code for future use
+            #self.req_client.set_profile_parameter("SimpleOutput", "NVENCPreset2", "p7")
+        else:
+            print("Using user's default encoder settings", file=sys.stderr)
+        
         #self.req_client.set_current_profile(self.default_profile)
 
 
