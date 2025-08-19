@@ -94,19 +94,29 @@ def filter_invalid_sample(vid_path, csv_path, meta_path, verbose = False):
     return is_invalid
 
 class OWLDataManager:
-    def __init__(self, token):
+    def __init__(self, token, progress_mode=False):
         self.staged_files = []
         self.staging_dir = "staging"
         self.current_tar_uuid = None
         self.token = token
+        self.progress_mode = progress_mode
         os.makedirs(self.staging_dir, exist_ok=True)
 
     def stage(self, verbose = False):
         file_counter = 0
+        total_folders = sum(1 for root, dirs, files in os.walk(ROOT_DIR) if not ('.uploaded' in files or '.invalid' in files))
+        processed_folders = 0
+        
+        if self.progress_mode:
+            progress_data = {"phase": "staging", "action": "start", "total_folders": total_folders}
+            print(f"PROGRESS: {json.dumps(progress_data)}")
+        
         for root, dirs, files in os.walk(ROOT_DIR):
             if '.uploaded' in files or '.invalid' in files:
                 continue
 
+            processed_folders += 1
+            
             if verbose: 
                 print(root, dirs, files)
 
@@ -130,6 +140,10 @@ class OWLDataManager:
                 csv_src_path = os.path.join(root, csv_file)
                 meta_src_path = os.path.join(root, metadata_file)
 
+                if self.progress_mode:
+                    progress_data = {"phase": "staging", "action": "processing", "current_file": mp4_file, "processed": file_counter}
+                    print(f"PROGRESS: {json.dumps(progress_data)}")
+
                 try:
                     invalid = filter_invalid_sample(mp4_src_path, csv_src_path, meta_src_path, verbose = True)
                 except Exception as e:
@@ -139,7 +153,15 @@ class OWLDataManager:
                 if invalid:
                     with open(os.path.join(root, '.invalid'), 'w') as f:
                         pass
+                    if self.progress_mode:
+                        progress_data = {"phase": "staging", "action": "invalid", "current_file": mp4_file}
+                        print(f"PROGRESS: {json.dumps(progress_data)}")
                     continue
+
+                # Get file sizes for progress tracking
+                mp4_size = os.path.getsize(mp4_src_path)
+                csv_size = os.path.getsize(csv_src_path)
+                meta_size = os.path.getsize(meta_src_path)
 
                 shutil.copy2(mp4_src_path, os.path.join(self.staging_dir, new_mp4))
                 shutil.copy2(csv_src_path, os.path.join(self.staging_dir, new_csv))
@@ -147,6 +169,22 @@ class OWLDataManager:
 
                 self.staged_files.append(root)
                 file_counter += 1
+                
+                if self.progress_mode:
+                    progress_data = {
+                        "phase": "staging", 
+                        "action": "staged", 
+                        "current_file": mp4_file,
+                        "files_staged": file_counter,
+                        "total_files": None,  # We don't know total until we finish
+                        "bytes_staged": mp4_size + csv_size + meta_size
+                    }
+                    print(f"PROGRESS: {json.dumps(progress_data)}")
+        
+        if self.progress_mode:
+            progress_data = {"phase": "staging", "action": "complete", "total_files": file_counter}
+            print(f"PROGRESS: {json.dumps(progress_data)}")
+        
         return file_counter > 0
     
 
@@ -155,9 +193,28 @@ class OWLDataManager:
         self.current_tar_uuid = uuid.uuid4().hex[:16]
         tar_name = f"{self.current_tar_uuid}.tar"
         
+        if self.progress_mode:
+            progress_data = {"phase": "compress", "action": "start", "tar_file": tar_name}
+            print(f"PROGRESS: {json.dumps(progress_data)}")
+        
         with tarfile.open(tar_name, "w") as tar:
-            for file in os.listdir(self.staging_dir):
+            files_to_add = os.listdir(self.staging_dir)
+            total_files = len(files_to_add)
+            for i, file in enumerate(files_to_add):
                 tar.add(os.path.join(self.staging_dir, file), arcname=file)
+                if self.progress_mode:
+                    progress_data = {
+                        "phase": "compress", 
+                        "action": "file", 
+                        "current_file": file,
+                        "files_compressed": i + 1,
+                        "total_files": total_files
+                    }
+                    print(f"PROGRESS: {json.dumps(progress_data)}")
+        
+        if self.progress_mode:
+            progress_data = {"phase": "compress", "action": "complete", "tar_file": tar_name}
+            print(f"PROGRESS: {json.dumps(progress_data)}")
             
         return tar_name
 
@@ -167,11 +224,29 @@ class OWLDataManager:
             
         tar_name = f"{self.current_tar_uuid}.tar"
         
+        if self.progress_mode:
+            progress_data = {"phase": "upload", "action": "start", "tar_file": tar_name}
+            print(f"PROGRESS: {json.dumps(progress_data)}")
+        
         try:
             upload_archive(self.token, tar_name)
-            for staged_path in self.staged_files:
+            
+            if self.progress_mode:
+                progress_data = {"phase": "upload", "action": "complete", "tar_file": tar_name}
+                print(f"PROGRESS: {json.dumps(progress_data)}")
+            
+            total_staged = len(self.staged_files)
+            for i, staged_path in enumerate(self.staged_files):
                 with open(os.path.join(staged_path, '.uploaded'), 'w') as f:
                     f.write('')
+                if self.progress_mode:
+                    progress_data = {
+                        "phase": "finalize", 
+                        "action": "mark_uploaded", 
+                        "current": i + 1,
+                        "total": total_staged
+                    }
+                    print(f"PROGRESS: {json.dumps(progress_data)}")
 
         finally:
             # Cleanup
@@ -193,8 +268,8 @@ class OWLDataManager:
                 shutil.rmtree(root)
 
 
-def upload_all_files(token, delete_uploaded=False):
-    manager = OWLDataManager(token)
+def upload_all_files(token, delete_uploaded=False, progress_mode=False):
+    manager = OWLDataManager(token, progress_mode=progress_mode)
     has_files = manager.stage()
     if has_files:
         manager.compress()

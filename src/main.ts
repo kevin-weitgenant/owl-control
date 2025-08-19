@@ -544,8 +544,8 @@ app.on('ready', () => {
     // Start the recording bridge
     startRecordingBridge(startKey, stopKey);
 
-    // Start the upload bridge
-    startUploadBridge(apiToken, deleteUploadedFiles);
+    // Upload bridge now started manually from UI
+    // startUploadBridge(apiToken, deleteUploadedFiles);
   }
 
   // If not authenticated, show main window for setup
@@ -658,8 +658,8 @@ function setupIpcHandlers() {
         // Restart the recording bridge
         startRecordingBridge(startKey, stopKey);
 
-        // Restart the upload bridge
-        startUploadBridge(apiToken, deleteUploadedFiles);
+        // Upload bridge now started manually from UI
+        // startUploadBridge(apiToken, deleteUploadedFiles);
       }
 
       return { success: true };
@@ -710,8 +710,8 @@ function setupIpcHandlers() {
     // Start the recording bridge
     startRecordingBridge(startKey, stopKey);
 
-    // Start the upload bridge
-    startUploadBridge(apiToken, deleteUploadedFiles);
+    // Upload bridge now started manually from UI
+    // startUploadBridge(apiToken, deleteUploadedFiles);
 
     // Close main window if it exists
     if (mainWindow) {
@@ -737,5 +737,95 @@ function setupIpcHandlers() {
       mainWindow.center();
     }
     return true;
+  });
+
+  // Start upload with progress tracking
+  ipcMain.handle('start-upload-with-progress', async (_, options) => {
+    try {
+      console.log('Starting upload with progress tracking');
+      
+      const uploadProcess = spawn('uv', [
+        'run',
+        '-m',
+        'vg_control.upload_bridge',
+        '--api-token', options.apiToken,
+        ...(options.deleteUploadedFiles ? ['--delete-uploaded-files'] : []),
+        '--progress' // Add progress flag for detailed output
+      ], {
+        cwd: rootDir(),
+      });
+
+      const processId = uploadProcess.pid;
+
+      // Handle progress output from Python
+      uploadProcess.stdout.on('data', (data: Buffer) => {
+        const output = data.toString();
+        console.log(`Upload stdout: ${output}`);
+        
+        // Parse progress information from Python output
+        // Expected format: "PROGRESS: {json_data}"
+        const lines = output.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('PROGRESS: ')) {
+            try {
+              const progressData = JSON.parse(line.substring(10));
+              // Send progress to renderer
+              if (settingsWindow) {
+                settingsWindow.webContents.send('upload-progress', progressData);
+              }
+              if (mainWindow) {
+                mainWindow.webContents.send('upload-progress', progressData);
+              }
+            } catch (e) {
+              console.error('Failed to parse progress data:', e);
+            }
+          }
+        }
+      });
+
+      uploadProcess.stderr.on('data', (data: Buffer) => {
+        console.error(`Upload stderr: ${data.toString()}`);
+      });
+
+      uploadProcess.on('close', (code: number) => {
+        console.log(`Upload process exited with code ${code}`);
+        
+        // Send completion message
+        const completionData = {
+          success: code === 0,
+          code: code,
+          totalFiles: 0, // These would come from the Python process
+          filesUploaded: 0,
+          totalDuration: 0,
+          totalBytes: 0
+        };
+        
+        if (settingsWindow) {
+          settingsWindow.webContents.send('upload-complete', completionData);
+        }
+        if (mainWindow) {
+          mainWindow.webContents.send('upload-complete', completionData);
+        }
+      });
+
+      return { success: true, processId: processId };
+    } catch (error) {
+      console.error('Error starting upload with progress:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // Stop upload process
+  ipcMain.handle('stop-upload-process', async (_, processId) => {
+    try {
+      if (processId) {
+        process.kill(processId, 'SIGTERM');
+        return { success: true };
+      }
+      return { success: false, error: 'No process ID provided' };
+    } catch (error) {
+      console.error('Error stopping upload process:', error);
+      return { success: false, error: String(error) };
+    }
   });
 }

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { AuthService } from '@/services/auth-service';
 import { PythonBridge, AppPreferences } from '@/services/python-bridge';
 import { Check } from 'lucide-react';
+import { UploadPanel } from '@/components/upload-panel';
 
 interface SettingsPageProps {
   onClose: () => void;
@@ -299,6 +300,9 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
             </div>
           </div>
         </div>
+
+        {/* Upload Manager */}
+        <UploadPanel />
       </div>
       
       {/* Footer */}
