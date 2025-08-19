@@ -100,6 +100,9 @@ class OWLDataManager:
         self.current_tar_uuid = None
         self.token = token
         self.progress_mode = progress_mode
+        self.total_duration = 0.0  # Track total duration of uploaded videos
+        self.total_bytes = 0  # Track total bytes of files
+        self.staged_bytes = 0  # Track bytes staged so far
         os.makedirs(self.staging_dir, exist_ok=True)
 
     def stage(self, verbose = False):
@@ -107,8 +110,40 @@ class OWLDataManager:
         total_folders = sum(1 for root, dirs, files in os.walk(ROOT_DIR) if not ('.uploaded' in files or '.invalid' in files))
         processed_folders = 0
         
+        # First pass: calculate total bytes of all valid files
         if self.progress_mode:
-            progress_data = {"phase": "staging", "action": "start", "total_folders": total_folders}
+            progress_data = {"phase": "calculating", "action": "start", "message": "Calculating total size..."}
+            print(f"PROGRESS: {json.dumps(progress_data)}")
+        
+        for root, dirs, files in os.walk(ROOT_DIR):
+            if '.uploaded' in files or '.invalid' in files:
+                continue
+                
+            has_mp4 = any([fname.endswith('.mp4') for fname in files])
+            has_csv = any([fname.endswith('.csv') for fname in files])
+            has_metadata = any([fname == 'metadata.json' for fname in files])
+                
+            if has_mp4 and has_csv and has_metadata:
+                mp4_file = next(f for f in files if f.endswith('.mp4'))
+                csv_file = next(f for f in files if f.endswith('.csv'))
+                metadata_file = 'metadata.json'
+                
+                mp4_src_path = os.path.join(root, mp4_file)
+                csv_src_path = os.path.join(root, csv_file)
+                meta_src_path = os.path.join(root, metadata_file)
+                
+                # Check if file would be invalid before counting bytes
+                try:
+                    invalid = filter_invalid_sample(mp4_src_path, csv_src_path, meta_src_path, verbose = False)
+                    if not invalid:
+                        self.total_bytes += os.path.getsize(mp4_src_path)
+                        self.total_bytes += os.path.getsize(csv_src_path)
+                        self.total_bytes += os.path.getsize(meta_src_path)
+                except Exception:
+                    pass  # Skip invalid files
+        
+        if self.progress_mode:
+            progress_data = {"phase": "staging", "action": "start", "total_folders": total_folders, "total_bytes": self.total_bytes}
             print(f"PROGRESS: {json.dumps(progress_data)}")
         
         for root, dirs, files in os.walk(ROOT_DIR):
@@ -158,10 +193,20 @@ class OWLDataManager:
                         print(f"PROGRESS: {json.dumps(progress_data)}")
                     continue
 
+                # Read duration from metadata and add to total
+                try:
+                    with open(meta_src_path) as f:
+                        metadata = json.load(f)
+                    duration = float(metadata.get('duration', 0))
+                    self.total_duration += duration
+                except Exception as e:
+                    print(f"Warning: Could not read duration from {meta_src_path}: {e}")
+
                 # Get file sizes for progress tracking
                 mp4_size = os.path.getsize(mp4_src_path)
                 csv_size = os.path.getsize(csv_src_path)
                 meta_size = os.path.getsize(meta_src_path)
+                file_total_bytes = mp4_size + csv_size + meta_size
 
                 shutil.copy2(mp4_src_path, os.path.join(self.staging_dir, new_mp4))
                 shutil.copy2(csv_src_path, os.path.join(self.staging_dir, new_csv))
@@ -169,6 +214,7 @@ class OWLDataManager:
 
                 self.staged_files.append(root)
                 file_counter += 1
+                self.staged_bytes += file_total_bytes
                 
                 if self.progress_mode:
                     progress_data = {
@@ -177,7 +223,8 @@ class OWLDataManager:
                         "current_file": mp4_file,
                         "files_staged": file_counter,
                         "total_files": None,  # We don't know total until we finish
-                        "bytes_staged": mp4_size + csv_size + meta_size
+                        "bytes_staged": self.staged_bytes,
+                        "total_bytes": self.total_bytes
                     }
                     print(f"PROGRESS: {json.dumps(progress_data)}")
         
@@ -212,8 +259,17 @@ class OWLDataManager:
                     }
                     print(f"PROGRESS: {json.dumps(progress_data)}")
         
+        # Update total_bytes to reflect the actual tar file size
+        if os.path.exists(tar_name):
+            self.total_bytes = os.path.getsize(tar_name)
+        
         if self.progress_mode:
-            progress_data = {"phase": "compress", "action": "complete", "tar_file": tar_name}
+            progress_data = {
+                "phase": "compress", 
+                "action": "complete", 
+                "tar_file": tar_name,
+                "tar_size_bytes": self.total_bytes
+            }
             print(f"PROGRESS: {json.dumps(progress_data)}")
             
         return tar_name
@@ -277,6 +333,21 @@ def upload_all_files(token, delete_uploaded=False, progress_mode=False):
 
     if delete_uploaded:
         manager.delete_uploaded()
+    
+    # Output final stats for the main process to capture
+    if progress_mode:
+        final_stats = {
+            "phase": "complete",
+            "total_files_uploaded": len(manager.staged_files),
+            "total_duration_uploaded": manager.total_duration,
+            "total_bytes_uploaded": manager.total_bytes
+        }
+        print(f"FINAL_STATS: {json.dumps(final_stats)}")
+    
+    return {
+        "files_uploaded": len(manager.staged_files) if has_files else 0,
+        "total_duration": manager.total_duration
+    }
 
 if __name__ == "__main__":
     import sys

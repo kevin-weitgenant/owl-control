@@ -128,8 +128,8 @@ def upload_archive(
             if "#" in line:
                 try:
                     # Extract percentage from the number of # characters
-                    percent = (line.count("#") / 50) * 100  # curl uses 50 # chars for 100%
-                    current = int(file_size * (percent / 100))
+                    percent = min((line.count("#") / 50) * 100, 100)  # Cap at 100%
+                    current = min(int(file_size * (percent / 100)), file_size)  # Cap at file size
                     # Only update if we've made progress to avoid unnecessary refreshes
                     if current > last_update:
                         pbar.n = current

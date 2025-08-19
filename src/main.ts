@@ -756,6 +756,7 @@ function setupIpcHandlers() {
       });
 
       const processId = uploadProcess.pid;
+      let finalStats = { totalFiles: 0, filesUploaded: 0, totalDuration: 0, totalBytes: 0 };
 
       // Handle progress output from Python
       uploadProcess.stdout.on('data', (data: Buffer) => {
@@ -763,7 +764,7 @@ function setupIpcHandlers() {
         console.log(`Upload stdout: ${output}`);
         
         // Parse progress information from Python output
-        // Expected format: "PROGRESS: {json_data}"
+        // Expected format: "PROGRESS: {json_data}" or "FINAL_STATS: {json_data}"
         const lines = output.split('\n');
         for (const line of lines) {
           if (line.startsWith('PROGRESS: ')) {
@@ -779,6 +780,19 @@ function setupIpcHandlers() {
             } catch (e) {
               console.error('Failed to parse progress data:', e);
             }
+          } else if (line.startsWith('FINAL_STATS: ')) {
+            try {
+              const statsData = JSON.parse(line.substring(13));
+              finalStats = {
+                totalFiles: statsData.total_files_uploaded || 0,
+                filesUploaded: statsData.total_files_uploaded || 0,
+                totalDuration: statsData.total_duration_uploaded || 0,
+                totalBytes: statsData.total_bytes_uploaded || 0
+              };
+              console.log('Captured final stats:', finalStats);
+            } catch (e) {
+              console.error('Failed to parse final stats:', e);
+            }
           }
         }
       });
@@ -790,14 +804,14 @@ function setupIpcHandlers() {
       uploadProcess.on('close', (code: number) => {
         console.log(`Upload process exited with code ${code}`);
         
-        // Send completion message
+        // Send completion message with captured stats
         const completionData = {
           success: code === 0,
           code: code,
-          totalFiles: 0, // These would come from the Python process
-          filesUploaded: 0,
-          totalDuration: 0,
-          totalBytes: 0
+          totalFiles: finalStats.totalFiles,
+          filesUploaded: finalStats.filesUploaded,
+          totalDuration: finalStats.totalDuration,
+          totalBytes: finalStats.totalBytes
         };
         
         if (settingsWindow) {

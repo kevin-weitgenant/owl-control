@@ -17,6 +17,7 @@ export interface UploadProgress {
 export interface UploadStats {
   totalDurationUploaded: number; // in seconds
   totalFilesUploaded: number;
+  totalVolumeUploaded: number; // in bytes
   lastUploadDate: string;
 }
 
@@ -54,6 +55,7 @@ export class UploadService {
     return {
       totalDurationUploaded: 0,
       totalFilesUploaded: 0,
+      totalVolumeUploaded: 0,
       lastUploadDate: 'Never'
     };
   }
@@ -61,12 +63,13 @@ export class UploadService {
   /**
    * Update upload statistics
    */
-  private updateUploadStats(additionalDuration: number, additionalFiles: number) {
+  private updateUploadStats(additionalDuration: number, additionalFiles: number, additionalVolume: number = 0) {
     try {
       const currentStats = this.getUploadStats();
       const newStats: UploadStats = {
         totalDurationUploaded: currentStats.totalDurationUploaded + additionalDuration,
         totalFilesUploaded: currentStats.totalFilesUploaded + additionalFiles,
+        totalVolumeUploaded: currentStats.totalVolumeUploaded + additionalVolume,
         lastUploadDate: new Date().toISOString()
       };
 
@@ -160,12 +163,20 @@ export class UploadService {
       console.log('Received progress data:', progressData);
       
       // Update progress state based on phase and action
-      if (progressData.phase === 'staging') {
-        if (progressData.action === 'complete') {
+      if (progressData.phase === 'calculating') {
+        progressState.currentFile = progressData.message || 'Calculating...';
+      } else if (progressData.phase === 'staging') {
+        if (progressData.action === 'start') {
+          progressState.totalBytes = progressData.total_bytes || 0;
+        } else if (progressData.action === 'complete') {
           progressState.totalFiles = progressData.total_files;
         } else if (progressData.action === 'staged') {
           progressState.uploadedFiles = progressData.files_staged;
           progressState.currentFile = progressData.current_file || '';
+          progressState.bytesUploaded = progressData.bytes_staged || 0;
+          if (progressState.totalBytes > 0) {
+            progressState.totalBytes = progressData.total_bytes || progressState.totalBytes;
+          }
         } else if (progressData.action === 'processing') {
           progressState.currentFile = progressData.current_file || '';
         }
@@ -176,6 +187,7 @@ export class UploadService {
           progressState.currentFile = 'Starting compression...';
         } else if (progressData.action === 'complete') {
           progressState.currentFile = 'Compression complete';
+          // Don't reset bytes - compression is an intermediate step
         }
       } else if (progressData.phase === 'upload') {
         if (progressData.action === 'start') {
@@ -199,7 +211,11 @@ export class UploadService {
       
       // Update stats if upload was successful
       if (result.success) {
-        this.updateUploadStats(result.totalDuration || 0, result.filesUploaded || progressState.totalFiles || 0);
+        this.updateUploadStats(
+          result.totalDuration || 0, 
+          result.filesUploaded || progressState.totalFiles || 0,
+          result.totalBytes || 0
+        );
       }
 
       // Notify completion

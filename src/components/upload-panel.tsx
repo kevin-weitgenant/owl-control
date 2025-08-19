@@ -23,6 +23,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({ className = '' }) => {
   const [stats, setStats] = useState<UploadStats>({
     totalDurationUploaded: 0,
     totalFilesUploaded: 0,
+    totalVolumeUploaded: 0,
     lastUploadDate: 'Never'
   });
   const [error, setError] = useState<string>('');
@@ -59,6 +60,19 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({ className = '' }) => {
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
+
+  const formatVolume = (bytes: number): string => {
+    if (bytes === 0) return '0 MB';
+    const k = 1024;
+    const mb = bytes / (k * k);
+    const gb = mb / k;
+    
+    if (gb >= 1) {
+      return `${gb.toFixed(1)} GB`;
+    } else {
+      return `${mb.toFixed(1)} MB`;
+    }
   };
 
   const formatDate = (dateString: string): string => {
@@ -138,7 +152,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({ className = '' }) => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-4 gap-4 mb-6">
         <div className="bg-[#1f2028] border border-[#2a2d35] rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
             <Clock className="h-4 w-4 text-[#42e2f5]" />
@@ -156,6 +170,16 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({ className = '' }) => {
           </div>
           <div className="text-lg font-bold text-white">
             {stats.totalFilesUploaded}
+          </div>
+        </div>
+
+        <div className="bg-[#1f2028] border border-[#2a2d35] rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Upload className="h-4 w-4 text-[#42e2f5]" />
+            <span className="text-sm text-gray-400">Volume Uploaded</span>
+          </div>
+          <div className="text-lg font-bold text-white">
+            {formatVolume(stats.totalVolumeUploaded)}
           </div>
         </div>
         
