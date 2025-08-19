@@ -75,7 +75,7 @@ impl WindowRecorder {
         // Start the Python OBS bridge process
         let mut command = tokio::process::Command::new(uv_path)
             .arg("run")
-            .arg("python")
+            .arg("--no-project")
             .arg("-m")
             .arg("vg_control.video.obs_bridge")
             .stdin(Stdio::piped())
@@ -88,6 +88,8 @@ impl WindowRecorder {
             .ok_or_eyre("Failed to get stdin handle")?;
         let stdout = command.stdout.take()
             .ok_or_eyre("Failed to get stdout handle")?;
+        let stderr = command.stderr.take()
+            .ok_or_eyre("Failed to get stderr handle")?;
         
         let bridge = OBSBridgeProcess {
             child: Arc::new(Mutex::new(Some(command))),
@@ -98,6 +100,15 @@ impl WindowRecorder {
             bridge,
             recording_path: recording_path.to_string(),
         };
+
+        // Set up stderr reader in background to capture errors
+        let stderr_reader = BufReader::new(stderr);
+        tokio::spawn(async move {
+            let mut stderr_lines = stderr_reader.lines();
+            while let Ok(Some(line)) = stderr_lines.next_line().await {
+                tracing::error!("OBS bridge stderr: {}", line);
+            }
+        });
 
         // Wait for ready message
         let reader = BufReader::new(stdout);

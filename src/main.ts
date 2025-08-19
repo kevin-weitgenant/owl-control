@@ -564,7 +564,8 @@ function rootDir() {
   if (process.env.NODE_ENV === 'development') {
     return ".";
   } else {
-    return path.join(__dirname, '..', '..');
+    // In packaged app, use the resources directory
+    return process.resourcesPath;
   }
 }
 

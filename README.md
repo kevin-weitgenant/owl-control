@@ -53,6 +53,10 @@ OWL Control automatically records your gameplay sessions (video + keyboard/mouse
 </tr>
 <tr>
 <td align="center">6️⃣</td>
+<td><strong>Strongly Recommended:</strong> In OBS, go to File -> Settings -> Output -> Streaming and set encoder to NVENC with p7 (highest quality) preset</td>
+</tr>
+<tr>
+<td align="center">7️⃣</td>
 <td><strong>Start gaming!</strong> OWL Control will automatically record supported games</td>
 </tr>
 </table>
