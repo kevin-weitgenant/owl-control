@@ -1,5 +1,6 @@
 mod find_game;
 mod hardware_id;
+mod hardware_specs;
 mod idle;
 mod input_recorder;
 mod keycode;
@@ -21,11 +22,9 @@ use tokio::{
     sync::{mpsc, oneshot},
     time::MissedTickBehavior,
 };
-#[cfg(feature = "real-video")]
-use video_audio_recorder::gstreamer;
 
 use crate::{
-    find_game::Game, idle::IdlenessTracker, keycode::lookup_keycode,
+    idle::IdlenessTracker, keycode::lookup_keycode,
     raw_input_debouncer::EventDebouncer, recorder::Recorder,
 };
 
@@ -34,9 +33,6 @@ use crate::{
 struct Args {
     #[arg(long)]
     recording_location: PathBuf,
-
-    #[arg(short, long)]
-    games: Vec<String>,
 
     #[arg(long, default_value = "F4")]
     start_key: String,
@@ -52,17 +48,12 @@ const MAX_RECORDING_DURATION: Duration = Duration::from_secs(60 * 10);
 async fn main() -> Result<()> {
     color_eyre::install()?;
     tracing_subscriber::fmt::init();
-    #[cfg(feature = "real-video")]
-    gstreamer::init()?;
 
     let Args {
         recording_location,
-        games,
         start_key,
         stop_key,
     } = Args::parse();
-
-    let games = games.into_iter().map(Game::new).collect();
 
     let start_key =
         lookup_keycode(&start_key).ok_or_else(|| eyre!("Invalid start key: {start_key}"))?;
@@ -79,7 +70,6 @@ async fn main() -> Result<()> {
                     .to_string(),
             )
         },
-        games,
     );
 
     let mut input_rx = listen_for_raw_inputs();

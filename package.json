@@ -11,8 +11,6 @@
     "package": "electron-builder",
     "package:download-requirements": "powershell scripts/download-requirements.ps1",
     "postinstall": "electron-builder install-app-deps",
-    "gstreamer:install": "npm run package:download-requirements && powershell scripts/gstreamer-install.ps1",
-    "gstreamer:uninstall": "npm run package:download-requirements && powershell scripts/gstreamer-uninstall.ps1",
     "version:patch": "node scripts/bump-version.js patch",
     "version:minor": "node scripts/bump-version.js minor",
     "version:major": "node scripts/bump-version.js major"

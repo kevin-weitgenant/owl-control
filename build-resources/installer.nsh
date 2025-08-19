@@ -14,9 +14,6 @@
     ExecWait '"$PLUGINSDIR\vc_redist.x64.exe" /quiet /norestart'
   ${endIf}
 
-  DetailPrint "Installing gstreamer"
-  File /oname=$PLUGINSDIR\gstreamer-1.0-msvc-x86_64.msi "${BUILD_RESOURCES_DIR}\downloads\gstreamer-1.0-msvc-x86_64.msi"
-  ExecWait '"msiexec" /passive /i "$PLUGINSDIR\gstreamer-1.0-msvc-x86_64.msi" ADDLOCAL=ALL'
   
   ; Create shortcuts with proper working directory
   CreateShortCut "$DESKTOP\OWL Control.lnk" "$INSTDIR\OWL Control.exe" "" "$INSTDIR\OWL Control.exe" 0 SW_SHOWNORMAL "" "Video game control input tracking"

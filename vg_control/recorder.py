@@ -15,7 +15,7 @@ from .input_tracking.writer import DataWriterClient
 from .video.obs_client import OBSClient
 from .metadata import Metadata
 from .constants import (
-    ROOT_DIR, GAME_LIST,
+    ROOT_DIR,
     INACTIVITY_TIME, MIN_FOOTAGE, MAX_FOOTAGE,
     TIME_TO_STOP
 )
@@ -73,17 +73,18 @@ class SimpleRecorder:
             return False
 
     def _get_game_process(self):
-        for proc in psutil.process_iter(['pid', 'name']):
-            try:
-                if proc.name().lower().endswith('.exe'):
-                    for game in GAME_LIST:
-                        if game.lower() in proc.name().lower():
-                            hwnd = win32gui.FindWindow(None, win32gui.GetWindowText(win32gui.GetForegroundWindow()))
-                            _, pid = win32process.GetWindowThreadProcessId(hwnd)
-                            if pid == proc.pid:
-                                return proc, self.is_window_fullscreen(hwnd)
-            except:
-                continue
+        hwnd = win32gui.GetForegroundWindow()
+        if not hwnd:
+            return None, False
+        
+        try:
+            _, pid = win32process.GetWindowThreadProcessId(hwnd)
+            proc = psutil.Process(pid)
+            if proc.name().lower().endswith('.exe'):
+                return proc, self.is_window_fullscreen(hwnd)
+        except:
+            pass
+        
         return None, False
     
     async def check_game_running(self):
