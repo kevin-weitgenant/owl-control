@@ -58,8 +58,22 @@ impl WindowRecorder {
 
         tracing::debug!("Starting OBS bridge process");
         
+        // Get the appropriate uv path (bundled in release, system in debug)
+        let uv_path = if cfg!(debug_assertions) {
+            "uv".to_string() // Use system uv in debug mode
+        } else {
+            // Use bundled uv in release mode - look for uv.exe next to the executable
+            std::env::current_exe()
+                .ok()
+                .and_then(|exe| exe.parent().map(|p| p.join("uv.exe")))
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|| "uv".to_string()) // Fallback to system uv
+        };
+        
+        tracing::debug!("Using uv path: {}", uv_path);
+        
         // Start the Python OBS bridge process
-        let mut command = tokio::process::Command::new("uv")
+        let mut command = tokio::process::Command::new(uv_path)
             .arg("run")
             .arg("python")
             .arg("-m")
