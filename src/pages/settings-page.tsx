@@ -304,7 +304,7 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
       {/* Footer */}
       <div className="flex items-center justify-between mt-6 pt-4 border-t border-[#2a2d35]">
         <div className="text-gray-500 text-sm select-none">
-          Open World Labs © {new Date().getFullYear()}
+          Wayfarer Labs © {new Date().getFullYear()}
         </div>
         
         <button

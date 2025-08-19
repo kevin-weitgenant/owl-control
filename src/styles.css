@@ -87,7 +87,7 @@ button[variant="outline"] {
     color-scheme: dark !important;
   }
 
-  /* Using only dark theme variables like OpenWorldLabs */
+  /* Using only dark theme variables like Wayfarer Labs */
   :root {
     --background: 240 12% 5%; /* #0c0c0f - Very dark background */
     --foreground: 210 17% 98%; /* #f8f9fa - Light foreground text */

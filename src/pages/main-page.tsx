@@ -209,7 +209,7 @@ export function MainPage() {
       <footer className="border-t border-border py-4">
         <div className="container flex items-center justify-between px-4">
           <p className="text-sm text-muted-foreground">
-            Open World Labs &copy; {new Date().getFullYear()}
+            Wayfarer Labs &copy; {new Date().getFullYear()}
           </p>
           <p className="text-sm text-muted-foreground">
             Version 1.0.0

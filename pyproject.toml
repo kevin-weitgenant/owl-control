@@ -2,7 +2,7 @@
 name = "vg-control"
 version = "1.0.0"
 description = "Video game control input tracking application"
-authors = [{ name = "Open World Labs" }]
+authors = [{ name = "Wayfarer Labs" }]
 requires-python = ">=3.12,<3.13"
 readme = "README.md"
 dependencies = [

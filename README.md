@@ -34,7 +34,7 @@ OWL Control automatically records your gameplay sessions (video + keyboard/mouse
 <table>
 <tr>
 <td width="50px" align="center">1️⃣</td>
-<td><strong>Download</strong> the latest version from the <a href="https://github.com/OpenWorld-Labs/owl_control/releases">Releases</a> page</td>
+<td><strong>Download</strong> the latest version from the <a href="https://github.com/Wayfarer-Labs/owl-control/releases">Releases</a> page</td>
 </tr>
 <tr>
 <td align="center">2️⃣</td>
@@ -168,7 +168,7 @@ Game audio is currently not recorded, but this may change in the future. Any suc
 
 ```bash
 # Clone the repository
-git clone https://github.com/OpenWorld-Labs/owl_control.git
+git clone https://github.com/Wayfarer-Labs/owl-control.git
 cd owl_control
 
 # Install dependencies
@@ -206,8 +206,8 @@ Currently only Windows is supported, although we'll be adding more platforms in 
 
 | Need Help? | Where to Go |
 |:----------:|:------------|
-| 🐛 **Issues or Bugs?** | Report them on our [GitHub Issues](https://github.com/OpenWorld-Labs/owl_control/issues) page |
-| ❓ **Questions?** | Visit our [GitHub Issues](https://github.com/OpenWorld-Labs/owl_control/issues) page |
+| 🐛 **Issues or Bugs?** | Report them on our [GitHub Issues](https://github.com/Wayfarer-Labs/owl-control/issues) page |
+| ❓ **Questions?** | Visit our [GitHub Issues](https://github.com/Wayfarer-Labs/owl-control/issues) page |
 
 </div>
 
@@ -215,9 +215,9 @@ Currently only Windows is supported, although we'll be adding more platforms in 
 
 <div align="center">
   <br>
-  <strong>🦉 OWL Control</strong> is a project by <a href="https://openworldlabs.ai">Open World Labs</a>
+  <strong>🦉 OWL Control</strong> is a project by <a href="https://wayfarerlabs.ai">Wayfarer Labs</a>
   <br>
   <em>Building open datasets for AI research</em>
   <br><br>
-  <a href="https://github.com/OpenWorld-Labs/owl_control">⭐ Star us on GitHub</a>
+  <a href="https://github.com/Wayfarer-Labs/owl-control">⭐ Star us on GitHub</a>
 </div>

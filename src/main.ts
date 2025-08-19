@@ -409,7 +409,7 @@ function updateTrayMenu() {
   menuTemplate.push({
     label: 'Help',
     click: () => {
-      shell.openExternal('https://openworldlabs.ai/contribute');
+      shell.openExternal('https://wayfarerlabs.ai/contribute');
     }
   });
 
