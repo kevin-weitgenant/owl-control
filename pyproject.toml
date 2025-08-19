@@ -6,15 +6,11 @@ authors = [{ name = "Open World Labs" }]
 requires-python = ">=3.12,<3.13"
 readme = "README.md"
 dependencies = [
-    "pynput>=1.7.6,<2",
     "python-dotenv>=1.0.0,<2",
-    "pywin32>=306,<307 ; sys_platform == 'win32'",
     "numpy>=2.0.0,<3",
-    "opencv-python>=4.10.0,<5",
     "pandas>=2.2.3",
     "psutil>=7.0.0",
     "requests>=2.32.3",
-    "httpx>=0.28.1",
     "tqdm>=4.67.1",
     "obsws-python>=1.7.2",
     "GPUtil>=1.4.0",

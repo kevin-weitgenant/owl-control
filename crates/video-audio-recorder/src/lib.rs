@@ -59,7 +59,9 @@ impl WindowRecorder {
         tracing::debug!("Starting OBS bridge process");
         
         // Start the Python OBS bridge process
-        let mut command = tokio::process::Command::new("python")
+        let mut command = tokio::process::Command::new("uv")
+            .arg("run")
+            .arg("python")
             .arg("-m")
             .arg("vg_control.video.obs_bridge")
             .stdin(Stdio::piped())
