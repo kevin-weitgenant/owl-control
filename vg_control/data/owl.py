@@ -285,7 +285,7 @@ class OWLDataManager:
             print(f"PROGRESS: {json.dumps(progress_data)}")
         
         try:
-            upload_archive(self.token, tar_name)
+            upload_archive(self.token, tar_name, progress_mode=self.progress_mode)
             
             if self.progress_mode:
                 progress_data = {"phase": "upload", "action": "complete", "tar_file": tar_name}

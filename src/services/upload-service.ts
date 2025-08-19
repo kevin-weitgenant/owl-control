@@ -25,10 +25,13 @@ export class UploadService {
   private static instance: UploadService;
   private uploadProcess: any = null;
   private statsFilePath: string;
+  private progressFilePath: string;
+  private progressPollingInterval: NodeJS.Timeout | null = null;
 
   constructor() {
     // Store stats in temp directory
     this.statsFilePath = path.join(os.tmpdir(), 'owl-control-upload-stats.json');
+    this.progressFilePath = path.join(os.tmpdir(), 'owl-control-upload-progress.json');
   }
 
   public static getInstance(): UploadService {
@@ -143,10 +146,10 @@ export class UploadService {
   }
 
   /**
-   * Listen for progress updates from the upload process
+   * Start polling the progress file for upload updates
    */
-  private listenForProgress(callback: (progress: UploadProgress) => void) {
-    // Track progress state across multiple Python progress messages
+  private startProgressPolling(callback: (progress: UploadProgress) => void) {
+    // Track progress state across updates
     let progressState = {
       totalFiles: 0,
       uploadedFiles: 0,
@@ -158,70 +161,84 @@ export class UploadService {
       isUploading: true
     };
 
-    // Listen for IPC messages from main process about upload progress
-    ipcRenderer.on('upload-progress', (_, progressData) => {
-      console.log('Received progress data:', progressData);
-      
-      // Update progress state based on phase and action
-      if (progressData.phase === 'calculating') {
-        progressState.currentFile = progressData.message || 'Calculating...';
-      } else if (progressData.phase === 'staging') {
-        if (progressData.action === 'start') {
-          progressState.totalBytes = progressData.total_bytes || 0;
-        } else if (progressData.action === 'complete') {
-          progressState.totalFiles = progressData.total_files;
-        } else if (progressData.action === 'staged') {
-          progressState.uploadedFiles = progressData.files_staged;
-          progressState.currentFile = progressData.current_file || '';
-          progressState.bytesUploaded = progressData.bytes_staged || 0;
-          if (progressState.totalBytes > 0) {
-            progressState.totalBytes = progressData.total_bytes || progressState.totalBytes;
+    this.progressPollingInterval = setInterval(() => {
+      try {
+        if (fs.existsSync(this.progressFilePath)) {
+          const progressData = JSON.parse(fs.readFileSync(this.progressFilePath, 'utf-8'));
+          
+          // Update progress state with file data
+          if (progressData.phase === 'upload') {
+            progressState.bytesUploaded = progressData.bytes_uploaded || 0;
+            progressState.totalBytes = progressData.total_bytes || 0;
+            
+            // Format speed
+            const speedMbps = progressData.speed_mbps || 0;
+            progressState.speed = speedMbps > 0 ? `${speedMbps.toFixed(1)} MB/s` : '0 MB/s';
+            
+            // Format ETA
+            const etaSeconds = progressData.eta_seconds || 0;
+            if (etaSeconds > 0 && etaSeconds < 3600) {
+              const minutes = Math.floor(etaSeconds / 60);
+              const seconds = Math.floor(etaSeconds % 60);
+              progressState.eta = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+            } else {
+              progressState.eta = etaSeconds > 0 ? 'Calculating...' : 'Complete';
+            }
+            
+            // Update current file status
+            const percent = Math.round(progressData.percent || 0);
+            progressState.currentFile = progressData.action === 'complete' 
+              ? 'Upload complete!' 
+              : `Uploading... ${percent}%`;
+            
+            // Set file progress to 1 of 1 when uploading
+            progressState.totalFiles = 1;
+            progressState.uploadedFiles = progressData.action === 'complete' ? 1 : 0;
           }
-        } else if (progressData.action === 'processing') {
-          progressState.currentFile = progressData.current_file || '';
+          
+          callback({ ...progressState });
         }
-      } else if (progressData.phase === 'compress') {
-        if (progressData.action === 'file') {
-          progressState.currentFile = `Compressing ${progressData.current_file}`;
-        } else if (progressData.action === 'start') {
-          progressState.currentFile = 'Starting compression...';
-        } else if (progressData.action === 'complete') {
-          progressState.currentFile = 'Compression complete';
-          // Don't reset bytes - compression is an intermediate step
-        }
-      } else if (progressData.phase === 'upload') {
-        if (progressData.action === 'start') {
-          progressState.currentFile = 'Starting upload...';
-        } else if (progressData.action === 'complete') {
-          progressState.currentFile = 'Upload complete';
-        }
-      } else if (progressData.phase === 'finalize') {
-        if (progressData.action === 'mark_uploaded') {
-          progressState.currentFile = `Finalizing... (${progressData.current}/${progressData.total})`;
-        }
+      } catch (error) {
+        console.error('Error reading progress file:', error);
       }
+    }, 500); // Poll every 500ms
+  }
 
-      // Send updated progress
-      callback({ ...progressState });
-    });
+  /**
+   * Stop polling the progress file
+   */
+  private stopProgressPolling() {
+    if (this.progressPollingInterval) {
+      clearInterval(this.progressPollingInterval);
+      this.progressPollingInterval = null;
+    }
+  }
 
-    // Listen for upload completion
+  /**
+   * Listen for progress updates from the upload process
+   */
+  private listenForProgress(callback: (progress: UploadProgress) => void) {
+    // Start polling the progress file
+    this.startProgressPolling(callback);
+
+    // Still listen for upload completion from IPC
     ipcRenderer.on('upload-complete', (_, result) => {
       this.uploadProcess = null;
+      this.stopProgressPolling();
       
       // Update stats if upload was successful
       if (result.success) {
         this.updateUploadStats(
           result.totalDuration || 0, 
-          result.filesUploaded || progressState.totalFiles || 0,
+          result.filesUploaded || 0,
           result.totalBytes || 0
         );
       }
 
       // Notify completion
       callback({
-        totalFiles: progressState.totalFiles || 0,
-        uploadedFiles: progressState.totalFiles || 0,
+        totalFiles: 1,
+        uploadedFiles: result.success ? 1 : 0,
         currentFile: result.success ? 'Upload completed successfully!' : 'Upload failed',
         bytesUploaded: result.totalBytes || 0,
         totalBytes: result.totalBytes || 0,
@@ -233,11 +250,21 @@ export class UploadService {
   }
 
   /**
-   * Clean up event listeners
+   * Clean up event listeners and polling
    */
   public cleanup() {
+    this.stopProgressPolling();
     ipcRenderer.removeAllListeners('upload-progress');
     ipcRenderer.removeAllListeners('upload-complete');
+    
+    // Clean up progress file
+    try {
+      if (fs.existsSync(this.progressFilePath)) {
+        fs.unlinkSync(this.progressFilePath);
+      }
+    } catch (error) {
+      console.error('Error cleaning up progress file:', error);
+    }
   }
 }
 

@@ -7,6 +7,7 @@ import httpx
 import subprocess
 import shlex
 from tqdm import tqdm
+import time
 
 from ..constants import API_BASE_URL
 from ..metadata import get_hwid
@@ -93,6 +94,7 @@ def upload_archive(
     archive_path: str,
     tags: Optional[List[str]] = None,
     base_url: str = API_BASE_URL,
+    progress_mode: bool = False,
 ) -> None:
     """Upload an archive to the storage bucket via a pre-signed URL."""
 
@@ -104,7 +106,58 @@ def upload_archive(
     )
 
     # Get file size for progress bar
+    import os
     file_size = os.path.getsize(archive_path)
+    
+    # Initialize progress file
+    if progress_mode:
+        import tempfile
+        import json
+        progress_file = os.path.join(tempfile.gettempdir(), 'owl-control-upload-progress.json')
+        initial_progress = {
+            "phase": "upload",
+            "action": "start",
+            "bytes_uploaded": 0,
+            "total_bytes": file_size,
+            "percent": 0,
+            "speed_mbps": 0,
+            "eta_seconds": 0,
+            "timestamp": time.time()
+        }
+        try:
+            with open(progress_file, 'w') as f:
+                json.dump(initial_progress, f)
+        except Exception as e:
+            print(f"Warning: Could not initialize progress file: {e}")
+    
+    def emit_upload_progress(bytes_uploaded, total_bytes, speed_bps=0):
+        """Write JSON progress data to file for UI consumption"""
+        if progress_mode:
+            import json
+            import tempfile
+            import os
+            
+            progress_data = {
+                "phase": "upload",
+                "action": "progress",
+                "bytes_uploaded": bytes_uploaded,
+                "total_bytes": total_bytes,
+                "percent": min((bytes_uploaded / total_bytes) * 100, 100) if total_bytes > 0 else 0,
+                "speed_mbps": speed_bps / (1024 * 1024) if speed_bps > 0 else 0,
+                "eta_seconds": ((total_bytes - bytes_uploaded) / speed_bps) if speed_bps > 0 else 0,
+                "timestamp": time.time()
+            }
+            
+            # Write to temp file for UI to read
+            progress_file = os.path.join(tempfile.gettempdir(), 'owl-control-upload-progress.json')
+            try:
+                with open(progress_file, 'w') as f:
+                    json.dump(progress_data, f)
+            except Exception as e:
+                print(f"Warning: Could not write progress file: {e}")
+            
+            # Also print for console (keep existing behavior)
+            print(f"PROGRESS: {json.dumps(progress_data)}")
     
     # Use -# for a simpler progress indicator that's easier to parse
     curl_command = f'curl -X PUT "{upload_url}" -H "Content-Type: application/x-tar" -T "{archive_path}" -# -m 1200'
@@ -118,6 +171,8 @@ def upload_archive(
         )
         
         last_update = 0
+        start_time = time.time() if progress_mode else 0
+        
         # Read curl's progress output
         while True:
             line = process.stderr.readline()
@@ -130,15 +185,47 @@ def upload_archive(
                     # Extract percentage from the number of # characters
                     percent = min((line.count("#") / 50) * 100, 100)  # Cap at 100%
                     current = min(int(file_size * (percent / 100)), file_size)  # Cap at file size
+                    
                     # Only update if we've made progress to avoid unnecessary refreshes
                     if current > last_update:
                         pbar.n = current
                         pbar.refresh()
+                        
+                        # Calculate speed and emit progress for UI
+                        if progress_mode and start_time > 0:
+                            elapsed_time = time.time() - start_time
+                            speed_bps = current / elapsed_time if elapsed_time > 0 else 0
+                            emit_upload_progress(current, file_size, speed_bps)
+                        
                         last_update = current
                 except:
                     continue
 
         # Wait for process to complete
         return_code = process.wait()
+        
+        # Cleanup progress file
+        if progress_mode:
+            import tempfile
+            import os
+            progress_file = os.path.join(tempfile.gettempdir(), 'owl-control-upload-progress.json')
+            try:
+                if os.path.exists(progress_file):
+                    # Write final completion state
+                    final_progress = {
+                        "phase": "upload",
+                        "action": "complete",
+                        "bytes_uploaded": file_size,
+                        "total_bytes": file_size,
+                        "percent": 100,
+                        "speed_mbps": 0,
+                        "eta_seconds": 0,
+                        "timestamp": time.time()
+                    }
+                    with open(progress_file, 'w') as f:
+                        json.dump(final_progress, f)
+            except Exception as e:
+                print(f"Warning: Could not write final progress: {e}")
+        
         if return_code != 0:
             raise Exception(f"Upload failed with return code {return_code}")

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Play, Square, Clock, FileText, Wifi } from 'lucide-react';
+import { Upload, Play, Clock, FileText, Wifi } from 'lucide-react';
 import UploadService, { UploadProgress, UploadStats } from '../services/upload-service';
 import { ElectronService } from '../services/electron-service';
 
@@ -120,20 +120,6 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({ className = '' }) => {
     }
   };
 
-  const handleStopUpload = async () => {
-    try {
-      const result = await uploadService.stopUpload();
-      if (result.success) {
-        setIsUploading(false);
-        setProgress(prev => ({ ...prev, isUploading: false }));
-      } else {
-        setError(result.message || 'Failed to stop upload');
-      }
-    } catch (error) {
-      console.error('Error stopping upload:', error);
-      setError('Failed to stop upload');
-    }
-  };
 
   const progressPercentage = progress.totalFiles > 0 
     ? Math.round((progress.uploadedFiles / progress.totalFiles) * 100)
@@ -238,25 +224,16 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({ className = '' }) => {
 
         {/* Control Button */}
         <button
-          onClick={isUploading ? handleStopUpload : handleStartUpload}
-          disabled={false}
+          onClick={handleStartUpload}
+          disabled={isUploading}
           className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-md font-medium transition-all duration-200 ${
             isUploading
-              ? 'bg-red-600 hover:bg-red-700 text-white'
+              ? 'bg-gray-600 cursor-not-allowed text-gray-300'
               : 'bg-[#42e2f5] hover:bg-[#35c5d7] text-black'
           }`}
         >
-          {isUploading ? (
-            <>
-              <Square className="h-4 w-4" />
-              Stop Upload
-            </>
-          ) : (
-            <>
-              <Play className="h-4 w-4" />
-              Start Upload
-            </>
-          )}
+          <Play className="h-4 w-4" />
+          {isUploading ? 'Upload in Progress...' : 'Start Upload'}
         </button>
 
         <p className="text-xs text-gray-500 text-center">
