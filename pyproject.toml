@@ -17,6 +17,9 @@ dependencies = [
     "httpx>=0.28.1",
     "tqdm>=4.67.1",
     "obsws-python>=1.7.2",
+    "GPUtil>=1.4.0",
+    "py-cpuinfo>=9.0.0",
+    "WMI>=1.5.1 ; sys_platform == 'win32'",
 ]
 
 [dependency-groups]

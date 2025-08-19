@@ -11,22 +11,6 @@ let tray: Tray | null = null;
 let pythonProcess: any = null;
 let isRecording = false;
 
-const GAME_LIST = [
-  'DOOMEternalx64vk',
-  'DOOMx64',
-  'FactoryGame',
-  'Titanfall2',
-  'SkyrimSE',
-  'TESV',
-  'Crysis3', 'Crysis3_x64', 'Crysis2', 'Crysis2_x64',
-  'OblivionRemastered',
-  'MCC-Win64-Shipping',
-  'farcry3', 'fc3', 'farcry4', 'farcry5', 'fc3_blooddragon',
-  'Cyberpunk2077',
-  'Frog_Detective',
-  'GeometryDash',
-  'BlackOpsColdWar', 'cod'
-]
 
 // Secure store for credentials and preferences
 const secureStore = {
@@ -463,7 +447,6 @@ function startRecordingBridge(startKey: string, stopKey: string) {
       '--recording-location', "./data_dump/games/",
       '--start-key', startKey,
       '--stop-key', stopKey,
-      ...GAME_LIST.flatMap(game => ['--games', game]),
     ], {
       cwd: rootDir(),
     });

@@ -4,19 +4,8 @@ use game_process::{
     windows::Win32::Foundation::HWND,
 };
 
-pub(crate) struct Game(String);
 
-impl Game {
-    pub(crate) fn new(name: String) -> Self {
-        Self(name.to_lowercase())
-    }
-
-    pub(crate) fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-pub(crate) fn get_foregrounded_game(games: &[Game]) -> Result<Option<(String, Pid, HWND)>> {
+pub(crate) fn get_foregrounded_game() -> Result<Option<(String, Pid, HWND)>> {
     let (hwnd, pid) = foreground_window()?;
 
     if !is_window_fullscreen(hwnd)? {
@@ -31,15 +20,7 @@ pub(crate) fn get_foregrounded_game(games: &[Game]) -> Result<Option<(String, Pi
         .to_str()
         .ok_or_eyre("Failed to convert exe name to unicode string")?
         .to_owned();
-    if !is_process_game(&exe_name, games) {
-        tracing::info!("Foregrounded process '{exe_name}' is not a game");
-        return Ok(None);
-    }
 
     Ok(Some((exe_name, pid, hwnd)))
 }
 
-fn is_process_game(name: &str, games: &[Game]) -> bool {
-    let name = name.to_lowercase();
-    games.iter().any(|game| name.contains(game.as_str()))
-}

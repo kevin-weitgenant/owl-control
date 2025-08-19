@@ -11,7 +11,7 @@ use tokio_util::task::AbortOnDropHandle;
 #[cfg(feature = "real-video")]
 use video_audio_recorder::WindowRecorder;
 
-use crate::{hardware_id, input_recorder::InputRecorder};
+use crate::{hardware_id, hardware_specs, input_recorder::InputRecorder};
 
 pub(crate) struct Recording {
     #[cfg(feature = "real-video")]
@@ -165,11 +165,20 @@ impl Recording {
             .as_secs();
 
         let hardware_id = hardware_id::get()?;
+        
+        let hardware_specs = match hardware_specs::get_hardware_specs() {
+            Ok(specs) => Some(specs),
+            Err(e) => {
+                tracing::warn!("Failed to get hardware specs: {}", e);
+                None
+            }
+        };
 
         Ok(Metadata {
             game_exe,
             session_id: uuid::Uuid::new_v4().to_string(),
             hardware_id,
+            hardware_specs,
             start_timestamp,
             end_timestamp,
             duration,
@@ -182,6 +191,7 @@ struct Metadata {
     game_exe: String,
     session_id: String,
     hardware_id: String,
+    hardware_specs: Option<hardware_specs::HardwareSpecs>,
     start_timestamp: u64,
     end_timestamp: u64,
     duration: f32,

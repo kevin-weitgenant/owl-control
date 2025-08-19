@@ -4,13 +4,12 @@ use color_eyre::{Result, eyre::Context as _};
 use tauri_winrt_notification::Toast;
 
 use crate::{
-    find_game::{Game, get_foregrounded_game},
+    find_game::get_foregrounded_game,
     recording::{InputParameters, MetadataParameters, Recording, WindowParameters},
 };
 
 pub(crate) struct Recorder<D> {
     recording_dir: D,
-    games: Vec<Game>,
     recording: Option<Recording>,
 }
 
@@ -18,10 +17,9 @@ impl<D> Recorder<D>
 where
     D: FnMut() -> PathBuf,
 {
-    pub(crate) fn new(recording_dir: D, games: Vec<Game>) -> Self {
+    pub(crate) fn new(recording_dir: D) -> Self {
         Self {
             recording_dir,
-            games,
             recording: None,
         }
     }
@@ -41,7 +39,7 @@ where
             .wrap_err("Failed to create recording directory")?;
 
         let Some((game_exe, pid, hwnd)) =
-            get_foregrounded_game(&self.games).wrap_err("failed to get foregrounded game")?
+            get_foregrounded_game().wrap_err("failed to get foregrounded game")?
         else {
             tracing::warn!("No game window found");
             Self::show_invalid_game_notification();

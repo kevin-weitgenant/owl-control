@@ -24,18 +24,3 @@ DATA_FILE_FORMAT = "vgc"  # OWL Control data format
 ROOT_DIR = "./data_dump/games/" # User should be able to set this, but we will need to use it
 POLLS_PER_FRAME=20 # Hard coded
 
-GAME_LIST = [ # Make sure this matches src/main.ts
-    'DOOMEternalx64vk',
-    'DOOMx64',
-    'FactoryGame',
-    'Titanfall2',
-    'SkyrimSE',
-    'TESV',
-    'Crysis3','Crysis3_x64','Crysis2','Crysis2_x64',
-    'OblivionRemastered',
-    'MCC-Win64-Shipping',
-    'farcry3', 'fc3', 'farcry4', 'farcry5', 'fc3_blooddragon',
-    'Cyberpunk2077',
-    'GeometryDash',
-    'BlackOpsColdWar', 'cod'
-]
