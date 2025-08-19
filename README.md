@@ -49,6 +49,10 @@ OWL Control automatically records your gameplay sessions (video + keyboard/mouse
 </tr>
 <tr>
 <td align="center">5️⃣</td>
+<td><strong>Install and setup OBS Studio</strong> (<a href="https://obsproject.com/">download</a>) and <a href="https://imgur.com/a/rN7C79y">enable websocket + disable authentication</a></td>
+</tr>
+<tr>
+<td align="center">6️⃣</td>
 <td><strong>Start gaming!</strong> OWL Control will automatically record supported games</td>
 </tr>
 </table>
