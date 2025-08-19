@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { AuthService } from '@/services/auth-service';
 import { PythonBridge, AppPreferences } from '@/services/python-bridge';
 import { Check } from 'lucide-react';
+import { UploadPanel } from '@/components/upload-panel';
 
 interface SettingsPageProps {
   onClose: () => void;
@@ -299,12 +300,15 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
             </div>
           </div>
         </div>
+
+        {/* Upload Manager */}
+        <UploadPanel />
       </div>
       
       {/* Footer */}
       <div className="flex items-center justify-between mt-6 pt-4 border-t border-[#2a2d35]">
         <div className="text-gray-500 text-sm select-none">
-          Open World Labs © {new Date().getFullYear()}
+          Wayfarer Labs © {new Date().getFullYear()}
         </div>
         
         <button

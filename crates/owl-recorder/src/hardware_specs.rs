@@ -1,6 +1,6 @@
 use color_eyre::Result;
 use serde::Serialize;
-use sysinfo::{System, Components, Networks, Disks};
+use sysinfo::System;
 
 #[derive(Debug, Serialize)]
 pub struct CpuSpecs {

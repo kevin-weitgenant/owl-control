@@ -40,7 +40,7 @@ extraResources:
 win:
   target:
     - nsis
-  publisherName: "Open World Labs"
+  publisherName: "Wayfarer Labs"
 
 nsis:
   oneClick: false
@@ -55,6 +55,6 @@ nsis:
 
 publish:
   - provider: github
-    owner: OpenWorld-Labs
-    repo: vg_control
+    owner: Wayfarer-Labs
+    repo: owl-control
     releaseType: release

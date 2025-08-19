@@ -17,9 +17,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/OpenWorld-Labs/vg_control.git"
+    "url": "git+https://github.com/Wayfarer-Labs/owl-control.git"
   },
-  "author": "Open World Labs",
+  "author": "Wayfarer Labs",
   "license": "MIT",
   "dependencies": {
     "class-variance-authority": "^0.7.0",

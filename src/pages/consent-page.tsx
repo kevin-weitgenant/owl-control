@@ -100,11 +100,10 @@ export function ConsentPage({ apiKey, onConsent, onCancel }: ConsentPageProps) {
             >
               <div className="space-y-4 text-[#c5c7cb]">
                 <div>
-                  <h2 className="text-lg font-bold text-white mb-2">Research Study: Open World Labs Interactive Game Data Pilot</h2>
+                  <h2 className="text-lg font-bold text-white mb-2">Research Study: Wayfarer Labs Interactive Game Data Pilot</h2>
                   <p className="text-sm">
                     Principal Investigators: Louis Castricato, Shahbuland Matiana<br />
-                    Contact: louis@openworldlabs.ai, shab@openworldlabs.ai<br />
-                    Affiliated Institution: Brown University
+                    Contact: louis@wayfarerlabs.ai, shahbuland@wayfarerlabs.ai
                   </p>
                 </div>
                 
@@ -178,7 +177,7 @@ export function ConsentPage({ apiKey, onConsent, onCancel }: ConsentPageProps) {
                 <div>
                   <h3 className="text-md font-bold text-white mb-1">Questions or Concerns</h3>
                   <p className="text-sm">
-                    For questions about this research, contact shab@openworldlabs.ai
+                    For questions about this research, contact shahbuland@wayfarerlabs.ai
                   </p>
                 </div>
                 

@@ -72,7 +72,7 @@ export function ApiKeyPage({ onApiKeySuccess, onShowConsent }: ApiKeyPageProps) 
         </form>
         
         <p className="text-[#4a4e58] text-sm text-center">
-          Open World Labs © 2025
+          Wayfarer Labs © 2025
         </p>
         </div>
       </div>
