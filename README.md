@@ -18,14 +18,13 @@
 
 ## 🎮 What is OWL Control?
 
-OWL Control automatically records your gameplay sessions (video + keyboard/mouse inputs) from supported single-player games. This data is uploaded to create a public dataset that researchers worldwide can use to train AI models.
+OWL Control automatically records your gameplay sessions (video + keyboard/mouse inputs) from supported single-player games using OBS websocket. This data is uploaded to create a public dataset that researchers worldwide can use to train AI models.
 
 ### ✨ Key Features
 
 | Feature | Description |
 |---------|-------------|
 | 🎬 **Automatic Recording** | Detects and records supported games automatically |
-| 🔒 **Privacy First** | Only records whitelisted single-player games, no microphone audio |
 | 🎛️ **Full Control** | Start/stop recording anytime with hotkeys (F4/F5) |
 | 🪶 **Lightweight** | Runs quietly in your system tray |
 
