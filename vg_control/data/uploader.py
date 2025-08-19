@@ -3,7 +3,6 @@ from typing import List, Optional
 from datetime import datetime
 import requests
 import urllib3
-import httpx
 import subprocess
 import shlex
 from tqdm import tqdm
@@ -161,6 +160,20 @@ def upload_archive(
     
     # Use -# for a simpler progress indicator that's easier to parse
     curl_command = f'curl -X PUT "{upload_url}" -H "Content-Type: application/x-tar" -T "{archive_path}" -# -m 1200'
+    
+    # Debug: log the upload URL (hide sensitive parts)
+    from urllib.parse import urlparse
+    parsed_url = urlparse(upload_url)
+    
+    # Write to debug log file
+    import tempfile
+    debug_log_path = os.path.join(tempfile.gettempdir(), 'owl-control-debug.log')
+    try:
+        with open(debug_log_path, 'a') as debug_file:
+            debug_file.write(f"[{datetime.now().isoformat()}] PYTHON: Uploading to host: {parsed_url.netloc}\n")
+            debug_file.write(f"[{datetime.now().isoformat()}] PYTHON: Full URL length: {len(upload_url)} chars\n")
+    except:
+        pass  # Don't fail if debug logging fails
     
     with tqdm(total=file_size, unit='B', unit_scale=True, desc="Uploading") as pbar:
         process = subprocess.Popen(

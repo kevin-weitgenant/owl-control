@@ -18,14 +18,13 @@
 
 ## 🎮 What is OWL Control?
 
-OWL Control automatically records your gameplay sessions (video + keyboard/mouse inputs) from supported single-player games. This data is uploaded to create a public dataset that researchers worldwide can use to train AI models.
+OWL Control automatically records your gameplay sessions (video + keyboard/mouse inputs) from supported single-player games using OBS websocket. This data is uploaded to create a public dataset that researchers worldwide can use to train AI models.
 
 ### ✨ Key Features
 
 | Feature | Description |
 |---------|-------------|
 | 🎬 **Automatic Recording** | Detects and records supported games automatically |
-| 🔒 **Privacy First** | Only records whitelisted single-player games, no microphone audio |
 | 🎛️ **Full Control** | Start/stop recording anytime with hotkeys (F4/F5) |
 | 🪶 **Lightweight** | Runs quietly in your system tray |
 
@@ -50,6 +49,14 @@ OWL Control automatically records your gameplay sessions (video + keyboard/mouse
 </tr>
 <tr>
 <td align="center">5️⃣</td>
+<td><strong>Install and setup OBS Studio</strong> (<a href="https://obsproject.com/">download</a>) and <a href="https://imgur.com/a/rN7C79y">enable websocket + disable authentication</a></td>
+</tr>
+<tr>
+<td align="center">6️⃣</td>
+<td><strong>Strongly Recommended:</strong> In OBS, go to File -> Settings -> Output -> Streaming and set encoder to NVENC with p7 (highest quality) preset</td>
+</tr>
+<tr>
+<td align="center">7️⃣</td>
 <td><strong>Start gaming!</strong> OWL Control will automatically record supported games</td>
 </tr>
 </table>
@@ -59,10 +66,6 @@ OWL Control automatically records your gameplay sessions (video + keyboard/mouse
 > **Your privacy is our top priority!**
 
 <table>
-<tr>
-<td>✅</td>
-<td><strong>Only records gameplay</strong> from pre-approved single-player games</td>
-</tr>
 <tr>
 <td>✅</td>
 <td><strong>No microphone recording</strong> - your voice stays private</td>
@@ -85,20 +88,6 @@ OWL Control automatically records your gameplay sessions (video + keyboard/mouse
 </tr>
 </table>
 
-## 🎯 Supported Games
-
-OWL Control automatically detects and records from the following curated list of single-player games. The app will notify you when it detects a supported game.
-- Doom Eternal
-- Doom (2016)
-- Cyberpunk 2077
-- Satisfactory
-- Crysis 3
-- Titanfall 2
-- Skyrim
-- Oblivion Remastered
-
-More games will be added in the future.
-
 ## 💻 System Requirements
 
 - Any system capable of running your game and OBS
@@ -116,8 +105,6 @@ OWL Control offers flexible upload scheduling:
 ## 📦 Data Collection
 
 OWL Control only records gameplay footage and keyboard/mouse inputs. No microphone audio is recorded.
-
-Game audio is currently not recorded, but this may change in the future. Any such changes will be announced.
 
 ## ⌨️ Controls
 
@@ -164,7 +151,9 @@ Game audio is currently not recorded, but this may change in the future. Any suc
 
 > **OWL Control is open source!** If you're interested in the technical details or want to contribute:
 
-### 🔨 Building from Source
+### 🔨 Building from Source  
+
+First make sure you've installed Node, UV, and Rust (Cargo)
 
 ```bash
 # Clone the repository
@@ -176,6 +165,7 @@ npm install
 uv sync
 
 # Build the application
+cargo build --release --bin owl-recorder
 npm run build
 
 # Run in development mode

@@ -3,6 +3,41 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { spawn } from 'child_process';
 import { join } from 'path';
+import * as os from 'os';
+
+// Set up file logging
+const logFilePath = path.join(os.tmpdir(), 'owl-control-debug.log');
+function logToFile(message: string) {
+  const timestamp = new Date().toISOString();
+  const logLine = `[${timestamp}] ${message}\n`;
+  try {
+    fs.appendFileSync(logFilePath, logLine);
+  } catch (e) {
+    // If we can't write to temp, try current directory
+    try {
+      fs.appendFileSync('owl-control-debug.log', logLine);
+    } catch (e2) {
+      // Give up
+    }
+  }
+}
+
+// Override console methods to also log to file
+const originalConsoleLog = console.log;
+const originalConsoleError = console.error;
+console.log = (...args) => {
+  const message = args.join(' ');
+  logToFile(`LOG: ${message}`);
+  originalConsoleLog(...args);
+};
+console.error = (...args) => {
+  const message = args.join(' ');
+  logToFile(`ERROR: ${message}`);
+  originalConsoleError(...args);
+};
+
+// Log app startup
+logToFile('=== OWL Control Debug Log Started ===');
 
 // Keep references
 let mainWindow: BrowserWindow | null = null;
@@ -442,6 +477,8 @@ function startRecordingBridge(startKey: string, stopKey: string) {
     }
 
     console.log(`Starting recording bridge`);
+    console.log(`Executing: ${recorderCommand()}`);
+    console.log(`Working directory: ${rootDir()}`);
 
     pythonProcess = spawn(recorderCommand(), [
       '--recording-location', "./data_dump/games/",
@@ -460,8 +497,16 @@ function startRecordingBridge(startKey: string, stopKey: string) {
       console.error(`Recording bridge stderr: ${data.toString()}`);
     });
 
+    pythonProcess.on('error', (error: Error) => {
+      console.error(`Recording bridge process error: ${error.message}`);
+      console.error(`This usually means the executable was not found: ${recorderCommand()}`);
+    });
+
     pythonProcess.on('close', (code: number) => {
       console.log(`Recording bridge process exited with code ${code}`);
+      if (code !== 0) {
+        console.error(`Recording bridge failed with exit code ${code}`);
+      }
       pythonProcess = null;
     });
 
@@ -485,7 +530,7 @@ function startUploadBridge(apiToken: string, deleteUploadedFiles: boolean) {
   try {
     console.log(`Starting upload bridge module from vg_control package`);
 
-    const uploadProcess = spawn('uv', [
+    const uploadProcess = spawn(getUvPath(), [
       'run',
       '-m',
       'vg_control.upload_bridge',
@@ -519,7 +564,17 @@ function rootDir() {
   if (process.env.NODE_ENV === 'development') {
     return ".";
   } else {
-    return path.join(__dirname, '..', '..');
+    // In packaged app, use the resources directory
+    return process.resourcesPath;
+  }
+}
+
+function getUvPath() {
+  if (process.env.NODE_ENV === 'development') {
+    return 'uv'; // Use system uv in development
+  } else {
+    // Use bundled uv in production
+    return path.join(process.resourcesPath, 'uv.exe');
   }
 }
 
@@ -744,7 +799,7 @@ function setupIpcHandlers() {
     try {
       console.log('Starting upload with progress tracking');
       
-      const uploadProcess = spawn('uv', [
+      const uploadProcess = spawn(getUvPath(), [
         'run',
         '-m',
         'vg_control.upload_bridge',
