@@ -8,7 +8,7 @@ import os
 import subprocess
 
 from ..constants import FPS, RECORDING_WIDTH, RECORDING_HEIGHT, VIDEO_BITRATE, SET_ENCODER
-
+from .resolution import get_primary_monitor_resolution
 """
 OBS websocket association with params on OBS client is finnicky. Listing a few so I don't forget.
 
@@ -85,10 +85,11 @@ class OBSClient:
 
         # Monitor/resolution info
         ml = self.req_client.get_monitor_list().monitors
-        primary_monitor = next(m for m in ml if m['monitorIndex'] == 0)
-        monitor_height = primary_monitor['monitorHeight']
-        monitor_width = primary_monitor['monitorWidth']
-
+        #primary_monitor = next(m for m in ml if m['monitorIndex'] == 0)
+        #monitor_height = primary_monitor['monitorHeight']
+        #monitor_width = primary_monitor['monitorWidth']
+        monitor_width, monitor_height = get_primary_monitor_resolution()
+        
         self.req_client.set_video_settings(
             FPS,
             1,
