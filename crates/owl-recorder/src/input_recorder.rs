@@ -59,7 +59,7 @@ impl InputRecorder {
             timestamp: SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
-                .as_secs(),
+                .as_secs_f64(),
             event_type,
         };
         self.write_entry(entry).await
@@ -99,7 +99,7 @@ impl InputRecorder {
 }
 
 struct Entry {
-    timestamp: u64,
+    timestamp: f64,
     event_type: EventType,
 }
 
