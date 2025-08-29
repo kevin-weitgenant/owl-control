@@ -117,7 +117,8 @@ Hotkeys for record/stop record can be changed in the applications settings.
 
 ### 🔨 Building from Source  
 
-First make sure you've installed Node, UV, and Rust (Cargo)
+First make sure you've installed Node, UV, and Rust (Cargo). It is reccomended to use powershell, and windows developer tools for this.  
+Winget can sometimes make a lot of this easier for you, but online installers should work. If you have any issues with setup, ask your local LLM!
 
 ```bash
 # Clone the repository
@@ -127,6 +128,7 @@ cd owl_control
 # Install dependencies
 npm install
 uv sync
+.venv\Scripts\activate.ps1
 
 # Build the application
 cargo build --release --bin owl-recorder
