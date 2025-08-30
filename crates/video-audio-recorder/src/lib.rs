@@ -165,6 +165,13 @@ impl WindowRecorder {
             return Err(eyre!("No start response received from OBS bridge"));
         }
 
+        // Once we're done reading stdout, spin up a task to echo stdout
+        tokio::spawn(async move {
+            while let Ok(Some(line)) = lines.next_line().await {
+                tracing::info!("OBS bridge stdout: {}", line);
+            }
+        });
+
         tracing::debug!("OBS recording started successfully");
         Ok(recorder)
     }
