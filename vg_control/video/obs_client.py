@@ -146,14 +146,14 @@ class OBSClient:
             if item['sourceName'] == 'owl_game_capture':
                 owl_gc_id = item['sceneItemId']
                 break
+        # in a classic pro gamer move, the structure of this transform is not documented
+        # outside of the code: <https://github.com/obsproject/obs-websocket/blob/40d26dbf4d29137bf88cd393a3031adb04d68bba/src/requesthandler/RequestHandler_SceneItems.cpp#L399-L440>
         new_tform_dict = {
-            'position' : {
-                'x' : 0.0, 'y' : 0.0
-            },
-            'rotation' : 0.0,
-            'scale' : {
-                'x' : 1.0, 'y' : 1.0
-            }
+            'positionX': 0.0,
+            'positionY': 0.0,
+            'scaleX': 1.0,
+            'scaleY': 1.0,
+            'rotation': 0.0,
         }
         self.req_client.set_scene_item_transform("owl_data_collection_scene", owl_gc_id, new_tform_dict)
         
