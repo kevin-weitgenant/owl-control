@@ -18,7 +18,7 @@
 
 ## 🎮 What is OWL Control?
 
-OWL Control automatically records your gameplay sessions (video + keyboard/mouse inputs) from supported single-player games using OBS websocket. This data is uploaded to create a public dataset that researchers worldwide can use to train AI models.
+OWL Control records your gameplay sessions (video + keyboard/mouse inputs) from single-player games, using OBS to do the recording work. This data is uploaded to create a public dataset that researchers worldwide can use to train AI models.
 
 ## 🚀 Getting Started (User Installation)
 
@@ -49,16 +49,16 @@ OWL Control automatically records your gameplay sessions (video + keyboard/mouse
 </tr>
 <tr>
 <td align="center">7️⃣</td>
-<td><strong>Start gaming!</strong> OWL Control will automatically record supported games</td>
+<td><strong>Start gaming!</strong> Recordings are currently manually initiated; when in any fullscreen game, hit F4 to start recording, and F5 to stop (by default)</td>
 </tr>
 </table>
 
 ## 🛡️ Risks And Additional Information
 
-Audio: OWL control does not record microphone inputs. It does record all system audio. Be aware of this if on voice chat/watching videos in the background during your play session.  
-Accidental Recording: We have observed a bug where sometimes OWL control responds to F4 (the default record button, which can be accidentally activated if one alt-f4s a game to close it) right after you close a game. In cases where this happens, it can be a good idea to quickly double check OBS after you close a game. Black recordings that result from this will be filtered out of the uploaded dataset but might still upload.  
-Processing: All data will undergo an automated vetting process to ensure we aren't using any empty recordings. That being said, OWL Control specifically sets OBS to record full screen applications, so there is no risk of accidental desktop capture.  
-Data Verification: You can press "file -> show recordings" in OBS if you want to verify your data is recording properly before upload.  
+- **Audio**: OWL control does not record microphone inputs. It does record all system audio. Be aware of this if on voice chat/watching videos in the background during your play session.  
+- **Accidental Recording**: We have observed a bug where sometimes OWL control responds to F4 (the default record button, which can be accidentally activated if one alt-f4s a game to close it) right after you close a game. In cases where this happens, it can be a good idea to quickly double check OBS after you close a game. Black recordings that result from this will be filtered out of the uploaded dataset but might still upload.  
+- **Processing**: All data will undergo an automated vetting process to ensure we aren't using any empty recordings. That being said, OWL Control specifically sets OBS to record full screen applications, so there is no risk of accidental desktop capture.  
+- **Data Verification**: You can press "file -> show recordings" in OBS if you want to verify your data is recording properly before upload.  
 
 ## 💻 System Requirements
 
