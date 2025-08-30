@@ -118,7 +118,7 @@ class OBSClient:
         
         # Verify the path was set correctly
         try:
-            current_path = self.req_client.get_profile_parameter("SimpleOutput", "FilePath")
+            current_path = self.req_client.get_profile_parameter("SimpleOutput", "FilePath").parameter_value
             print(f"OBS confirmed recording path: {current_path}", file=sys.stderr)
         except Exception as e:
             print(f"Warning: Could not verify recording path: {e}", file=sys.stderr)
