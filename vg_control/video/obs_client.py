@@ -68,36 +68,6 @@ class OBSClient:
 
         self.event_client.callback.register(on_record_state_changed)
         
-        # Convert forward slashes to backslashes for Windows
-        # Write recording path to debug log
-        recording_path = recording_path.replace("\\\\?\\", "")
-        self.req_client.set_profile_parameter("SimpleOutput", "FilePath", recording_path)
-        
-        # Give OBS a moment to process the path change
-        time.sleep(0.5)
-        
-        # Verify the path was set correctly
-        try:
-            current_path = self.req_client.get_profile_parameter("SimpleOutput", "FilePath")
-            print(f"OBS confirmed recording path: {current_path}", file=sys.stderr)
-        except Exception as e:
-            print(f"Warning: Could not verify recording path: {e}", file=sys.stderr)
-
-        # Monitor/resolution info
-        ml = self.req_client.get_monitor_list().monitors
-        #primary_monitor = next(m for m in ml if m['monitorIndex'] == 0)
-        #monitor_height = primary_monitor['monitorHeight']
-        #monitor_width = primary_monitor['monitorWidth']
-        monitor_width, monitor_height = get_primary_monitor_resolution()
-        
-        self.req_client.set_video_settings(
-            FPS,
-            1,
-            monitor_width,
-            monitor_height,
-            RECORDING_WIDTH,
-            RECORDING_HEIGHT,
-        )
 
         profile_list = self.req_client.get_profile_list()
         crnt_profile = profile_list.current_profile_name
@@ -131,6 +101,44 @@ class OBSClient:
         self.req_client.set_input_volume('Mic/Aux', None, -100)
         self.req_client.set_input_volume('Desktop Audio', None, 0)
 
+        # Init the profile, make sure all params are right
+        self.req_client.set_current_profile('owl_data_recorder')
+        self.req_client.set_profile_parameter("SimpleOutput", "RecQuality", "Stream")
+        self.req_client.set_profile_parameter("SimpleOutput", "VBitrate", str(VIDEO_BITRATE))
+        self.req_client.set_profile_parameter("Output", "Mode", "Simple")
+        self.req_client.set_profile_parameter("SimpleOutput", "RecFormat2", "mp4")
+
+        # Convert forward slashes to backslashes for Windows
+        # Write recording path to debug log
+        recording_path = recording_path.replace("\\\\?\\", "")
+        self.req_client.set_profile_parameter("SimpleOutput", "FilePath", recording_path)
+        
+        # Give OBS a moment to process the path change
+        time.sleep(0.5)
+        
+        # Verify the path was set correctly
+        try:
+            current_path = self.req_client.get_profile_parameter("SimpleOutput", "FilePath").parameter_value
+            print(f"OBS confirmed recording path: {current_path}", file=sys.stderr)
+        except Exception as e:
+            print(f"Warning: Could not verify recording path: {e}", file=sys.stderr)
+
+        # Monitor/resolution info
+        ml = self.req_client.get_monitor_list().monitors
+        #primary_monitor = next(m for m in ml if m['monitorIndex'] == 0)
+        #monitor_height = primary_monitor['monitorHeight']
+        #monitor_width = primary_monitor['monitorWidth']
+        monitor_width, monitor_height = get_primary_monitor_resolution()
+        
+        self.req_client.set_video_settings(
+            FPS,
+            1,
+            monitor_width,
+            monitor_height,
+            RECORDING_WIDTH,
+            RECORDING_HEIGHT,
+        )
+        
         # Find the owl game capture scene id
         item_list = self.req_client.get_scene_item_list("owl_data_collection_scene").scene_items
         owl_gc_id = None
@@ -138,23 +146,16 @@ class OBSClient:
             if item['sourceName'] == 'owl_game_capture':
                 owl_gc_id = item['sceneItemId']
                 break
+        # in a classic pro gamer move, the structure of this transform is not documented
+        # outside of the code: <https://github.com/obsproject/obs-websocket/blob/40d26dbf4d29137bf88cd393a3031adb04d68bba/src/requesthandler/RequestHandler_SceneItems.cpp#L399-L440>
         new_tform_dict = {
-            'position' : {
-                'x' : 0.0, 'y' : 0.0
-            },
-            'rotation' : 0.0,
-            'scale' : {
-                'x' : 1.0, 'y' : 1.0
-            }
+            'positionX': 0.0,
+            'positionY': 0.0,
+            'scaleX': 1.0,
+            'scaleY': 1.0,
+            'rotation': 0.0,
         }
         self.req_client.set_scene_item_transform("owl_data_collection_scene", owl_gc_id, new_tform_dict)
-
-        # Init the profile, make sure all params are right
-        self.req_client.set_current_profile('owl_data_recorder')
-        self.req_client.set_profile_parameter("SimpleOutput", "RecQuality", "Stream")
-        self.req_client.set_profile_parameter("SimpleOutput", "VBitrate", str(VIDEO_BITRATE))
-        self.req_client.set_profile_parameter("Output", "Mode", "Simple")
-        self.req_client.set_profile_parameter("SimpleOutput", "RecFormat2", "mp4")
         
         # Conditional encoder settings - only override if SET_ENCODER is True
         if SET_ENCODER:
