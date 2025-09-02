@@ -125,7 +125,7 @@ Winget can sometimes make a lot of this easier for you, but online installers sh
 ```bash
 # Clone the repository
 git clone https://github.com/Wayfarer-Labs/owl-control.git
-cd owl_control
+cd owl-control
 
 # Install dependencies
 npm install
