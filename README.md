@@ -20,6 +20,8 @@
 
 OWL Control records your gameplay sessions (video + keyboard/mouse inputs) from single-player games, using OBS to do the recording work. This data is uploaded to create a public dataset that researchers worldwide can use to train AI models.
 
+**DISCLAIMER**: THERE ARE REPORTS OF OWL CONTROL CAUSING BANS IN MULTIPLAYER PVP GAMES  
+
 ## 🚀 Getting Started (User Installation)
 
 <table>
