@@ -25,7 +25,7 @@ OWL Control records your gameplay sessions (video + keyboard/mouse inputs) from 
 <table>
 <tr>
 <td width="50px" align="center">1️⃣</td>
-<td><strong>Download</strong> the latest version from the <a href="https://github.com/Wayfarer-Labs/owl-control/releases">Releases</a> page</td>
+<td><strong>Download</strong> the latest installer from the <a href="https://github.com/Wayfarer-Labs/owl-control/releases">Releases</a> page</td>
 </tr>
 <tr>
 <td align="center">2️⃣</td>
