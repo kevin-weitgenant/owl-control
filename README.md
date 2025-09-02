@@ -49,7 +49,7 @@ OWL Control records your gameplay sessions (video + keyboard/mouse inputs) from 
 </tr>
 <tr>
 <td align="center">7️⃣</td>
-<td><strong>Start gaming!</strong> Recordings are currently manually initiated; when in any fullscreen game, hit F4 to start recording, and F5 to stop (by default)</td>
+<td><strong>Once OWL Control is open, you should give it around ~5 minutes to ensure it has time to install all python packages. After that, you can start gaming!</strong> Recordings are currently manually initiated; when in any fullscreen game, hit F4 to start recording, and F5 to stop (by default). You can test it is running my pressing F4 outside of a game, which should give you a windows notification saying that OWL Control will not record with no foreground fullscreen application.</td>
 </tr>
 </table>
 
