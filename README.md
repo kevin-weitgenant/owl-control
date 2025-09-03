@@ -140,6 +140,7 @@ npm run build
 npm run dev
 
 # Package for distribution (includes Python bundling)
+npm run package:download-requirements # run this first
 npm run package        # All platforms
 npm run package:win    # Windows only
 npm run package:mac    # macOS only
