@@ -159,7 +159,7 @@ def upload_archive(
             print(f"PROGRESS: {json.dumps(progress_data)}")
     
     # Use -# for a simpler progress indicator that's easier to parse
-    curl_command = f'curl -X PUT "{upload_url}" -H "Content-Type: application/x-tar" -T "{archive_path}" -# -m 1200'
+    curl_command = f'curl -X PUT "{upload_url}" -k -H "Content-Type: application/x-tar" -T "{archive_path}" -# -m 1200'
     
     # Debug: log the upload URL (hide sensitive parts)
     from urllib.parse import urlparse
