@@ -465,6 +465,57 @@ function updateTrayMenu() {
   tray.setToolTip(isRecording ? 'OWL Control - Recording' : 'OWL Control');
 }
 
+// Ensure Python dependencies are installed
+async function ensurePythonDependencies() {
+  return new Promise<boolean>((resolve) => {
+    try {
+      console.log('Ensuring Python dependencies are installed...');
+      logToFile('STARTUP: Installing Python dependencies');
+      
+      const installProcess = spawn(getUvPath(), [
+        'sync',
+        '--frozen'  // Use lockfile without updating it
+      ], {
+        cwd: rootDir(),
+      });
+
+      installProcess.stdout.on('data', (data: Buffer) => {
+        const output = data.toString();
+        console.log(`Dependency install stdout: ${output}`);
+        logToFile(`DEP_INSTALL: ${output.trim()}`);
+      });
+
+      installProcess.stderr.on('data', (data: Buffer) => {
+        const output = data.toString();
+        console.error(`Dependency install stderr: ${output}`);
+        logToFile(`DEP_INSTALL_ERR: ${output.trim()}`);
+      });
+
+      installProcess.on('close', (code: number) => {
+        if (code === 0) {
+          console.log('Python dependencies installed successfully');
+          logToFile('STARTUP: Python dependencies installation completed successfully');
+          resolve(true);
+        } else {
+          console.error(`Dependency installation failed with code ${code}`);
+          logToFile(`STARTUP: Python dependencies installation failed with code ${code}`);
+          resolve(false);
+        }
+      });
+
+      installProcess.on('error', (error: Error) => {
+        console.error('Error installing Python dependencies:', error);
+        logToFile(`STARTUP: Error installing Python dependencies: ${error.message}`);
+        resolve(false);
+      });
+    } catch (error) {
+      console.error('Error starting dependency installation:', error);
+      logToFile(`STARTUP: Error starting dependency installation: ${error}`);
+      resolve(false);
+    }
+  });
+}
+
 // Start Python bridges after authentication
 
 // Start Python recording bridge
@@ -579,7 +630,7 @@ function getUvPath() {
 }
 
 // App ready event
-app.on('ready', () => {
+app.on('ready', async () => {
   // Load config
   loadConfig();
 
@@ -588,6 +639,13 @@ app.on('ready', () => {
 
   // Create the tray
   createTray();
+
+  // Install Python dependencies before starting any Python processes
+  const depsInstalled = await ensurePythonDependencies();
+  if (!depsInstalled) {
+    console.warn('Failed to install Python dependencies, Python features may not work correctly');
+    logToFile('STARTUP: Python dependencies installation failed, continuing anyway');
+  }
 
   // Start the Python bridges if authenticated
   if (isAuthenticated()) {
