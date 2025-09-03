@@ -3,8 +3,6 @@ Set-Location build-resources/downloads
 
 $downloadManifest = @{
     "vc_redist.x64.exe"                   = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
-    "gstreamer-1.0-msvc-x86_64.msi"       = "https://gstreamer.freedesktop.org/data/pkg/windows/1.26.2/msvc/gstreamer-1.0-msvc-x86_64-1.26.2.msi"
-    "gstreamer-1.0-devel-msvc-x86_64.msi" = "https://gstreamer.freedesktop.org/data/pkg/windows/1.26.2/msvc/gstreamer-1.0-devel-msvc-x86_64-1.26.2.msi"
     "uv.zip"                              = "https://github.com/astral-sh/uv/releases/download/0.7.12/uv-x86_64-pc-windows-msvc.zip"
 }
 

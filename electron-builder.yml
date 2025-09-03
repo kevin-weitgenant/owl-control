@@ -52,7 +52,7 @@ nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
-  allowElevation: true
+  allowElevation: false
   license: LICENSE
   warningsAsErrors: true
   createDesktopShortcut: true
