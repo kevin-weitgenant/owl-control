@@ -131,9 +131,6 @@ export function ConsentPage({ apiKey, onConsent, onCancel }: ConsentPageProps) {
                 <div>
                   <h3 className="text-md font-bold text-white mb-1">Data Collection and Privacy</h3>
                   <p className="text-sm">
-                    - In order to prevent any identifying information such as gamertags or text chat from leaking
-                    into the dataset, we are limiting data collection to a fixed set (whitelist) of single player
-                    games.<br />
                     - The recording software is limited to only capturing full screen applications.<br />
                     - The recording software will stop recording if no activity is detected for a sufficient period of
                     time.<br />
@@ -141,9 +138,8 @@ export function ConsentPage({ apiKey, onConsent, onCancel }: ConsentPageProps) {
                     process, the data will be stored securely and anonymized.<br />
                     - Upon full open source release, there will be no identifying information in the dataset.<br />
                     - The software cannot record microphone audio<br />
-                    - The software records all desktop audio<br />
-                    - When idle, this software will update stored data and (optionally) delete any local videos to
-                    preserve storage space on your device.<br />
+                    - The software records game audio only, not all desktop audio<br />
+                    - Data is stored locally and only uploaded when you manually press the upload button<br />
                     - The software avoids recording overlays.
                   </p>
                 </div>
@@ -151,8 +147,8 @@ export function ConsentPage({ apiKey, onConsent, onCancel }: ConsentPageProps) {
                 <div>
                   <h3 className="text-md font-bold text-white mb-1">Potential Risks</h3>
                   <p className="text-sm">
-                    - The software records all desktop audio while you are playing a game. This will also record
-                    any background audio sources that are active while you are playing.
+                    - Using OWL Control in multiplayer games may result in account bans, as anti-cheat systems may flag it as suspicious software<br />
+                    - We strongly recommend using OWL Control only in single-player games to avoid potential issues
                   </p>
                 </div>
                 

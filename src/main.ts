@@ -469,48 +469,86 @@ function updateTrayMenu() {
 async function ensurePythonDependencies() {
   return new Promise<boolean>((resolve) => {
     try {
-      console.log('Ensuring Python dependencies are installed...');
-      logToFile('STARTUP: Installing Python dependencies');
+      console.log('Creating Python virtual environment and installing dependencies...');
+      logToFile('STARTUP: Creating Python virtual environment and installing dependencies');
       
-      const installProcess = spawn(getUvPath(), [
-        'sync',
-        '--frozen'  // Use lockfile without updating it
+      // First create virtual environment, then install dependencies
+      const venvProcess = spawn(getUvPath(), [
+        'venv',
+        '--python', '3.12'
       ], {
         cwd: rootDir(),
       });
 
-      installProcess.stdout.on('data', (data: Buffer) => {
+      venvProcess.stdout.on('data', (data: Buffer) => {
         const output = data.toString();
-        console.log(`Dependency install stdout: ${output}`);
-        logToFile(`DEP_INSTALL: ${output.trim()}`);
+        console.log(`Venv create stdout: ${output}`);
+        logToFile(`VENV_CREATE: ${output.trim()}`);
       });
 
-      installProcess.stderr.on('data', (data: Buffer) => {
+      venvProcess.stderr.on('data', (data: Buffer) => {
         const output = data.toString();
-        console.error(`Dependency install stderr: ${output}`);
-        logToFile(`DEP_INSTALL_ERR: ${output.trim()}`);
+        console.error(`Venv create stderr: ${output}`);
+        logToFile(`VENV_CREATE_ERR: ${output.trim()}`);
       });
 
-      installProcess.on('close', (code: number) => {
+      venvProcess.on('close', (code: number) => {
         if (code === 0) {
-          console.log('Python dependencies installed successfully');
-          logToFile('STARTUP: Python dependencies installation completed successfully');
-          resolve(true);
+          console.log('Virtual environment created successfully, now installing dependencies...');
+          logToFile('STARTUP: Virtual environment created, installing dependencies');
+          
+          // Now install dependencies into the virtual environment
+          const installProcess = spawn(getUvPath(), [
+            'sync',
+            '--frozen'  // Use lockfile without updating it
+          ], {
+            cwd: rootDir(),
+          });
+
+          installProcess.stdout.on('data', (data: Buffer) => {
+            const output = data.toString();
+            console.log(`Dependency install stdout: ${output}`);
+            logToFile(`DEP_INSTALL: ${output.trim()}`);
+          });
+
+          installProcess.stderr.on('data', (data: Buffer) => {
+            const output = data.toString();
+            console.error(`Dependency install stderr: ${output}`);
+            logToFile(`DEP_INSTALL_ERR: ${output.trim()}`);
+          });
+
+          installProcess.on('close', (code: number) => {
+            if (code === 0) {
+              console.log('Python dependencies installed successfully');
+              logToFile('STARTUP: Python dependencies installation completed successfully');
+              resolve(true);
+            } else {
+              console.error(`Dependency installation failed with code ${code}`);
+              logToFile(`STARTUP: Python dependencies installation failed with code ${code}`);
+              resolve(false);
+            }
+          });
+
+          installProcess.on('error', (error: Error) => {
+            console.error('Error installing Python dependencies:', error);
+            logToFile(`STARTUP: Error installing Python dependencies: ${error.message}`);
+            resolve(false);
+          });
         } else {
-          console.error(`Dependency installation failed with code ${code}`);
-          logToFile(`STARTUP: Python dependencies installation failed with code ${code}`);
+          console.error(`Virtual environment creation failed with code ${code}`);
+          logToFile(`STARTUP: Virtual environment creation failed with code ${code}`);
           resolve(false);
         }
       });
 
-      installProcess.on('error', (error: Error) => {
-        console.error('Error installing Python dependencies:', error);
-        logToFile(`STARTUP: Error installing Python dependencies: ${error.message}`);
+      venvProcess.on('error', (error: Error) => {
+        console.error('Error creating virtual environment:', error);
+        logToFile(`STARTUP: Error creating virtual environment: ${error.message}`);
         resolve(false);
       });
     } catch (error) {
-      console.error('Error starting dependency installation:', error);
-      logToFile(`STARTUP: Error starting dependency installation: ${error}`);
+      console.error('Error starting virtual environment creation:', error);
+      logToFile(`STARTUP: Error starting virtual environment creation: ${error}`);
       resolve(false);
     }
   });

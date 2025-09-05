@@ -26,12 +26,6 @@ extraResources:
       - "**/*.pyd"
       - "!**/__pycache__"
       - "!**/*.pyc"
-  - from: .venv
-    to: .venv
-    filter:
-      - "**/*"
-      - "!**/__pycache__"
-      - "!**/*.pyc"
   - from: pyproject.toml
     to: pyproject.toml
   - from: uv.lock
