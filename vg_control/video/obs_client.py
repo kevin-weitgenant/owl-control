@@ -99,7 +99,7 @@ class OBSClient:
 
         # Audio settings
         self.req_client.set_input_volume('Mic/Aux', None, -100)
-        self.req_client.set_input_volume('Desktop Audio', None, 0)
+        self.req_client.set_input_volume('Desktop Audio', None, -100)
 
         # Init the profile, make sure all params are right
         self.req_client.set_current_profile('owl_data_recorder')
