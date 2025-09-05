@@ -75,7 +75,6 @@ impl WindowRecorder {
         // Start the Python OBS bridge process
         let mut command = tokio::process::Command::new(uv_path)
             .arg("run")
-            .arg("--no-project")
             .arg("-m")
             .arg("vg_control.video.obs_bridge")
             .stdin(Stdio::piped())
