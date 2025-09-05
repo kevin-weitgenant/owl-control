@@ -18,9 +18,9 @@
 
 ## 🎮 What is OWL Control?
 
-OWL Control records your gameplay sessions (video + keyboard/mouse inputs) from single-player games, using OBS to do the recording work. This data is uploaded to create a public dataset that researchers worldwide can use to train AI models. Here's a video tutorial if you don't want to read the below: [link](https://www.loom.com/share/1722a9d6be26468baba8a06b4006350d)
+OWL Control records your gameplay sessions (video + keyboard/mouse inputs) from games, using OBS to do the recording work. This data can be uploaded to create a public dataset that researchers worldwide can use to train AI models. Here's a video tutorial if you don't want to read the below: [link](https://www.loom.com/share/1722a9d6be26468baba8a06b4006350d)
 
-**DISCLAIMER**: THERE ARE REPORTS OF OWL CONTROL CAUSING BANS IN MULTIPLAYER PVP GAMES  
+**DISCLAIMER**: THERE ARE REPORTS OF OWL CONTROL CAUSING BANS IN MULTIPLAYER PVP GAMES - WE STRONGLY RECOMMEND USING ONLY IN SINGLE-PLAYER GAMES  
 
 ## 🚀 Getting Started (User Installation)
 
@@ -57,7 +57,7 @@ OWL Control records your gameplay sessions (video + keyboard/mouse inputs) from 
 
 ## 🛡️ Risks And Additional Information
 
-- **Audio**: OWL control does not record microphone inputs. It does record all system audio. Be aware of this if on voice chat/watching videos in the background during your play session.  
+- **Audio**: OWL control does not record microphone inputs. It records game audio only, not all system audio.  
 - **Accidental Recording**: We have observed a bug where sometimes OWL control responds to F4 (the default record button, which can be accidentally activated if one alt-f4s a game to close it) right after you close a game. In cases where this happens, it can be a good idea to quickly double check OBS after you close a game. Black recordings that result from this will be filtered out of the uploaded dataset but might still upload.  
 - **Processing**: All data will undergo an automated vetting process to ensure we aren't using any empty recordings. That being said, OWL Control specifically sets OBS to record full screen applications, so there is no risk of accidental desktop capture.  
 - **Data Verification**: You can press "file -> show recordings" in OBS if you want to verify your data is recording properly before upload.  
@@ -69,7 +69,7 @@ Video upload can be bandwidth intensive, though we downsample videos to 360p and
 
 ## ⚙️ Uploading  
 
-Uploads are manual. You should open the tray icon and select "upload" in settings. That being said, this feature is a WIP and it may be better to instead zip up your files and upload elsewhere for persistent cloud storage. Note that you can always press show recordings to find all the files, as mentioned earlier.
+Uploads are manual only. Data is stored locally and only uploaded when you manually press the upload button in settings. You can access upload options by opening the tray icon and selecting "Settings" -> "Upload". Note that you can always press "show recordings" in OBS to find all the files.
 
 ## ⌨️ Default Hotkeys
 
