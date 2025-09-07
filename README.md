@@ -43,7 +43,7 @@ OWL Control records your gameplay sessions (video + keyboard/mouse inputs) from 
 </tr>
 <tr>
 <td align="center">5️⃣</td>
-<td><strong>Install and setup OBS Studio</strong> (<a href="https://obsproject.com/">download</a>) and <a href="https://imgur.com/a/rN7C79y">enable websocket + disable authentication</a></td>
+<td><strong>Install and setup OBS Studio</strong> (<a href="https://obsproject.com/">download</a>) (if OBS asks for your preferences/settings/preset, just press "cancel" and ignore) and <a href="https://imgur.com/a/rN7C79y">enable websocket + disable authentication</a></td>
 </tr>
 <tr>
 <td align="center">6️⃣</td>
