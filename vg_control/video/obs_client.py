@@ -22,11 +22,42 @@ There are ini files for the presets
 """
 
 def try_launch_obs_if_not_open():
-    # Check common installation paths
-    obs_paths = [
-        r"C:\Program Files\obs-studio\bin\64bit\obs64.exe",
-        r"C:\Program Files (x86)\obs-studio\bin\64bit\obs64.exe"
-    ]
+    # First try to find OBS via registry (most reliable)
+    try:
+        import winreg
+        # Check both 32-bit and 64-bit registry views
+        reg_paths = [
+            (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\OBS Studio"),
+            (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\OBS Studio"),
+        ]
+        for hkey, reg_path in reg_paths:
+            try:
+                with winreg.OpenKey(hkey, reg_path) as key:
+                    install_path = winreg.QueryValueEx(key, "")[0]
+                    obs_exe = os.path.join(install_path, "bin", "64bit", "obs64.exe")
+                    if os.path.exists(obs_exe):
+                        obs_dir = os.path.dirname(obs_exe)
+                        subprocess.Popen([obs_exe], cwd=obs_dir)
+                        time.sleep(10)
+                        return
+            except (WindowsError, OSError):
+                continue
+    except ImportError:
+        pass  # winreg not available, fall back to file search
+    
+    # Fall back to checking common installation paths on all drives
+    import string
+    obs_paths = []
+    
+    # Get all available drive letters
+    drives = [f"{d}:\\" for d in string.ascii_uppercase if os.path.exists(f"{d}:\\")]
+    
+    # Check common paths on all drives
+    for drive in drives:
+        obs_paths.extend([
+            os.path.join(drive, "Program Files", "obs-studio", "bin", "64bit", "obs64.exe"),
+            os.path.join(drive, "Program Files (x86)", "obs-studio", "bin", "64bit", "obs64.exe"),
+        ])
     
     for path in obs_paths:
         if os.path.exists(path):
@@ -38,7 +69,7 @@ def try_launch_obs_if_not_open():
             time.sleep(10)
             return
             
-    raise FileNotFoundError("Could not find OBS installation")
+    raise FileNotFoundError("Could not find OBS installation. Please ensure OBS Studio is installed and try launching it manually first.")
 
 class OBSClient:
     """
@@ -97,9 +128,16 @@ class OBSClient:
                 True
             )
 
-        # Audio settings
-        self.req_client.set_input_volume('Mic/Aux', None, -100)
-        self.req_client.set_input_volume('Desktop Audio', None, -100)
+        # Audio settings - handle missing sources gracefully
+        try:
+            self.req_client.set_input_volume('Mic/Aux', None, -100)
+        except Exception as e:
+            print(f"Warning: Could not set Mic/Aux volume (source may not exist): {e}", file=sys.stderr)
+        
+        try:
+            self.req_client.set_input_volume('Desktop Audio', None, -100)
+        except Exception as e:
+            print(f"Warning: Could not set Desktop Audio volume (source may not exist): {e}", file=sys.stderr)
 
         # Init the profile, make sure all params are right
         self.req_client.set_current_profile('owl_data_recorder')
