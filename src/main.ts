@@ -655,6 +655,10 @@ function rootDir() {
   }
 }
 
+/**
+ * Spawns uv with the same behavior as spawn_uv() in crates/video-audio-recorder/src/lib.rs.
+ * These functions should be kept synchronized.
+ */
 function spawnUv(args: string[], options?: SpawnOptionsWithoutStdio) {
   const isDevelopment = process.env.NODE_ENV === 'development';
   // Use system uv in development, bundled uv in production
@@ -673,9 +677,9 @@ function spawnUv(args: string[], options?: SpawnOptionsWithoutStdio) {
     if (!fs.existsSync(uvDir)) {
       fs.mkdirSync(uvDir, { recursive: true });
     }
-    
-    env = { 
-      ...env,  
+
+    env = {
+      ...env,
       // Always copy deps, do not hardlink
       UV_LINK_MODE: 'copy',
       // Do not let the user's configuration interfere with our uv
@@ -694,8 +698,8 @@ function spawnUv(args: string[], options?: SpawnOptionsWithoutStdio) {
   }
 
   return spawn(uvPath, args, {
-    ...(options || {}), 
-    env, 
+    ...(options || {}),
+    env,
   });
 }
 
