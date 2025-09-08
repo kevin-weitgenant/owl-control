@@ -23,7 +23,9 @@ OWL Control records your gameplay sessions (video + keyboard/mouse inputs) from 
 **DISCLAIMER**: THERE ARE REPORTS OF OWL CONTROL CAUSING BANS IN MULTIPLAYER PVP GAMES - WE STRONGLY RECOMMEND USING ONLY IN SINGLE-PLAYER GAMES  
 
 ## 🚀 Getting Started (User Installation)
-The below text is supplemental, please watch the video tutorial here: [link](https://www.loom.com/share/1722a9d6be26468baba8a06b4006350d)
+The below text is supplemental, please watch the video tutorial here: [link][(https://www.loom.com/share/1722a9d6be26468baba8a06b4006350d](https://www.loom.com/share/f18451c8196a47a9a2dd7418f785cd37)
+The video goes over common failure cases and shows some light debugging. OWL Control is currently in pre-release and there a lot of kinks to iron out. As such the video tutorial is extensive,
+and features some minor debugging. It should be watched in full before you use the software so you can both verify it is working and report correctly when it is not.
 <table>
 <tr>
 <td width="50px" align="center">1️⃣</td>
