@@ -18,12 +18,12 @@
 
 ## 🎮 What is OWL Control?
 
-OWL Control records your gameplay sessions (video + keyboard/mouse inputs) from games, using OBS to do the recording work. This data can be uploaded to create a public dataset that researchers worldwide can use to train AI models. Here's a video tutorial if you don't want to read the below: [link](https://www.loom.com/share/1722a9d6be26468baba8a06b4006350d)
+OWL Control records your gameplay sessions (video + keyboard/mouse inputs) from games, using OBS to do the recording work. This data can be uploaded to create a public dataset that researchers worldwide can use to train AI models.
 
 **DISCLAIMER**: THERE ARE REPORTS OF OWL CONTROL CAUSING BANS IN MULTIPLAYER PVP GAMES - WE STRONGLY RECOMMEND USING ONLY IN SINGLE-PLAYER GAMES  
 
 ## 🚀 Getting Started (User Installation)
-
+The below text is supplemental, please watch the video tutorial here: [link](https://www.loom.com/share/1722a9d6be26468baba8a06b4006350d)
 <table>
 <tr>
 <td width="50px" align="center">1️⃣</td>
