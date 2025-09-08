@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
-import { spawn } from 'child_process';
+import { spawn, SpawnOptionsWithoutStdio } from 'child_process';
 import { join } from 'path';
 import * as os from 'os';
 
@@ -473,7 +473,7 @@ async function ensurePythonDependencies() {
       logToFile('STARTUP: Creating Python virtual environment and installing dependencies');
       
       // First create virtual environment, then install dependencies
-      const venvProcess = spawn(getUvPath(), [
+      const venvProcess = spawnUv([
         'venv',
         '--python', '3.12'
       ], {
@@ -498,10 +498,7 @@ async function ensurePythonDependencies() {
           logToFile('STARTUP: Virtual environment created, installing dependencies');
           
           // Now install dependencies into the virtual environment
-          const installProcess = spawn(getUvPath(), [
-            'sync',
-            '--frozen'  // Use lockfile without updating it
-          ], {
+          const installProcess = spawnUv(['sync'], {
             cwd: rootDir(),
           });
 
@@ -619,7 +616,7 @@ function startUploadBridge(apiToken: string, deleteUploadedFiles: boolean) {
   try {
     console.log(`Starting upload bridge module from vg_control package`);
 
-    const uploadProcess = spawn(getUvPath(), [
+    const uploadProcess = spawnUv([
       'run',
       '-m',
       'vg_control.upload_bridge',
@@ -658,13 +655,52 @@ function rootDir() {
   }
 }
 
-function getUvPath() {
-  if (process.env.NODE_ENV === 'development') {
-    return 'uv'; // Use system uv in development
-  } else {
-    // Use bundled uv in production
-    return path.join(process.resourcesPath, 'uv.exe');
+/**
+ * Spawns uv with the same behavior as spawn_uv() in crates/video-audio-recorder/src/lib.rs.
+ * These functions should be kept synchronized.
+ */
+function spawnUv(args: string[], options?: SpawnOptionsWithoutStdio) {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  // Use system uv in development, bundled uv in production
+  const uvPath = isDevelopment ? 'uv' : path.join(process.resourcesPath, 'uv.exe');
+  let env: Record<string, string> = {
+    ...(options?.env || {}),
+    // Do not attempt to update the dependencies
+    'UV_FROZEN': '1',
+  };
+
+  if (!isDevelopment) {
+    // In production, we override all of uv's paths to ensure that it installs everything locally
+    // to OWLC, which should stop it from interfering with the user's global state and/or
+    // have a better chance of working in non-standard configurations
+    const uvDir = path.join(process.resourcesPath, 'uv');
+    if (!fs.existsSync(uvDir)) {
+      fs.mkdirSync(uvDir, { recursive: true });
+    }
+
+    env = {
+      ...env,
+      // Always copy deps, do not hardlink
+      UV_LINK_MODE: 'copy',
+      // Do not let the user's configuration interfere with our uv
+      UV_NO_CONFIG: '1',
+      // Mark all dependencies as non-editable
+      UV_NO_EDITABLE: '1',
+      // Ensure we always use our managed Python
+      UV_MANAGED_PYTHON: '1',
+      // Update all directories
+      UV_CACHE_DIR: path.join(uvDir, 'cache'),
+      UV_PYTHON_INSTALL_DIR: path.join(uvDir, 'python_install'),
+      UV_PYTHON_BIN_DIR: path.join(uvDir, 'python_bin'),
+      UV_TOOL_DIR: path.join(uvDir, 'tool'),
+      UV_TOOL_BIN_DIR: path.join(uvDir, 'tool_bin'),
+    };
   }
+
+  return spawn(uvPath, args, {
+    ...(options || {}),
+    env,
+  });
 }
 
 // App ready event
@@ -895,7 +931,7 @@ function setupIpcHandlers() {
     try {
       console.log('Starting upload with progress tracking');
       
-      const uploadProcess = spawn(getUvPath(), [
+      const uploadProcess = spawnUv([
         'run',
         '-m',
         'vg_control.upload_bridge',

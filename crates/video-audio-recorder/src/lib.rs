@@ -3,6 +3,8 @@ use std::{
     process::Stdio,
     sync::Arc,
     time::Duration,
+    env,
+    fs,
 };
 
 use color_eyre::{
@@ -13,7 +15,7 @@ use futures_util::Future;
 use serde::{Deserialize, Serialize};
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
-    process::Child as TokioChild,
+    process::{Child as TokioChild, Command},
     sync::Mutex,
     time::timeout,
 };
@@ -33,6 +35,59 @@ struct BridgeCommand {
     data: serde_json::Value,
 }
 
+/// Spawns uv with the same behavior as spawnUv() in src/main.ts.
+/// These functions should be kept synchronized.
+fn spawn_uv(args: Vec<&str>) -> Result<Command> {
+    let is_development = env::var("NODE_ENV").unwrap_or_default() == "development";
+
+    // Use system uv in development, bundled uv in production
+    let uv_path = if is_development {
+        "uv".to_string()
+    } else {
+        // In production, look for uv.exe next to the executable
+        env::current_exe()
+            .ok()
+            .and_then(|exe| exe.parent().map(|p| p.join("uv.exe")))
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|| "uv".to_string())
+    };
+
+    let mut command = Command::new(uv_path);
+    command.args(args);
+
+    let mut env_vars = env::vars().collect::<std::collections::HashMap<String, String>>();
+
+    // Do not attempt to update the dependencies
+    env_vars.insert("UV_FROZEN".to_string(), "1".to_string());
+
+    if !is_development {
+        // In production, override all of uv's paths to ensure local installation
+        let resources_path = env::current_exe()
+            .ok()
+            .and_then(|exe| exe.parent().map(|p| p.to_path_buf()))
+            .unwrap_or_default();
+
+        let uv_dir = resources_path.join("uv");
+        if !uv_dir.exists() {
+            fs::create_dir_all(&uv_dir)
+                .wrap_err("Failed to create uv directory")?;
+        }
+
+        env_vars.insert("UV_LINK_MODE".to_string(), "copy".to_string());
+        env_vars.insert("UV_NO_CONFIG".to_string(), "1".to_string());
+        env_vars.insert("UV_NO_EDITABLE".to_string(), "1".to_string());
+        env_vars.insert("UV_MANAGED_PYTHON".to_string(), "1".to_string());
+        env_vars.insert("UV_CACHE_DIR".to_string(), uv_dir.join("cache").to_string_lossy().to_string());
+        env_vars.insert("UV_PYTHON_INSTALL_DIR".to_string(), uv_dir.join("python_install").to_string_lossy().to_string());
+        env_vars.insert("UV_PYTHON_BIN_DIR".to_string(), uv_dir.join("python_bin").to_string_lossy().to_string());
+        env_vars.insert("UV_TOOL_DIR".to_string(), uv_dir.join("tool").to_string_lossy().to_string());
+        env_vars.insert("UV_TOOL_BIN_DIR".to_string(), uv_dir.join("tool_bin").to_string_lossy().to_string());
+    }
+
+    command.envs(env_vars);
+    Ok(command)
+}
+
 struct OBSBridgeProcess {
     child: Arc<Mutex<Option<TokioChild>>>,
     stdin: Arc<Mutex<Option<tokio::process::ChildStdin>>>,
@@ -48,35 +103,18 @@ impl WindowRecorder {
     pub async fn start_recording(path: &Path, _pid: u32, _hwnd: usize) -> Result<WindowRecorder> {
         let recording_dir = path.parent()
             .ok_or_eyre("Recording path must have a parent directory")?;
-        
+
         // Convert to absolute path for OBS
         let absolute_recording_path = std::fs::canonicalize(recording_dir)
             .wrap_err("Failed to get absolute path for recording directory")?;
-        
+
         let recording_path = absolute_recording_path.to_str()
             .ok_or_eyre("Path must be valid UTF-8")?;
 
         tracing::debug!("Starting OBS bridge process");
-        
-        // Get the appropriate uv path (bundled in release, system in debug)
-        let uv_path = if cfg!(debug_assertions) {
-            "uv".to_string() // Use system uv in debug mode
-        } else {
-            // Use bundled uv in release mode - look for uv.exe next to the executable
-            std::env::current_exe()
-                .ok()
-                .and_then(|exe| exe.parent().map(|p| p.join("uv.exe")))
-                .map(|p| p.to_string_lossy().to_string())
-                .unwrap_or_else(|| "uv".to_string()) // Fallback to system uv
-        };
-        
-        tracing::debug!("Using uv path: {}", uv_path);
-        
-        // Start the Python OBS bridge process
-        let mut command = tokio::process::Command::new(uv_path)
-            .arg("run")
-            .arg("-m")
-            .arg("vg_control.video.obs_bridge")
+
+        // Start the Python OBS bridge process using spawn_uv
+        let mut command = spawn_uv(vec!["run", "-m", "vg_control.video.obs_bridge"])?
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
