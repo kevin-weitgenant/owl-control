@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = "==3.12.*"
 resolution-markers = [
     "sys_platform == 'darwin'",
@@ -404,7 +404,7 @@ wheels = [
 
 [[package]]
 name = "vg-control"
-version = "1.0.0"
+version = "0.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "gputil" },
