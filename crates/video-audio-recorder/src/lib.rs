@@ -123,14 +123,12 @@ impl WindowRecorder {
                 .wrap_err("Failed to create input")?;
         }
 
-        inputs
+        let _ = inputs
             .set_volume(InputId::Name("Mic/Aux"), Volume::Db(-100.0))
-            .await
-            .wrap_err("Failed to set Mic/Aux volume")?;
-        inputs
+            .await;
+        let _ = inputs
             .set_volume(InputId::Name("Desktop Audio"), Volume::Db(-100.0))
-            .await
-            .wrap_err("Failed to set Desktop Audio volume")?;
+            .await;
 
         for (category, name, value) in [
             ("SimpleOutput", "RecQuality", "Stream"),
