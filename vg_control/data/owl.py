@@ -8,7 +8,7 @@ import shutil
 import json
 from datetime import datetime
 
-from ..constants import ROOT_DIR, MIN_FOOTAGE, MAX_FOOTAGE
+from ..constants import ROOT_DIR, MIN_FOOTAGE, MAX_FOOTAGE, RECORDING_WIDTH, RECORDING_HEIGHT, FPS
 
 from .input_utils.buttons import get_button_stats
 from .input_utils.mouse import get_mouse_stats
@@ -138,6 +138,22 @@ class OWLDataManager:
                         pass
                     continue
                 
+                # Read duration from metadata and track bytes
+                metadata_dict = {}
+                try:
+                    with open(meta_path) as f:
+                        metadata_dict = json.load(f)
+                    duration = float(metadata_dict.get('duration', 0))
+                    self.total_duration += duration
+                except Exception as e:
+                    print(f"Warning: Could not read duration from {meta_path}: {e}")
+                
+                # Track file sizes for statistics
+                mp4_size = os.path.getsize(mp4_path)
+                csv_size = os.path.getsize(csv_path)
+                meta_size = os.path.getsize(meta_path)
+                self.total_bytes += mp4_size + csv_size + meta_size
+                
                 # Create tar for this single session
                 import uuid
                 tar_name = f"{uuid.uuid4().hex[:16]}.tar"
@@ -147,9 +163,20 @@ class OWLDataManager:
                     tar.add(csv_path, arcname=csv_file)
                     tar.add(meta_path, arcname='metadata.json')
                 
-                # Upload immediately
+                # Upload immediately with metadata
                 try:
-                    upload_archive(self.token, tar_name, progress_mode=self.progress_mode)
+                    upload_archive(
+                        self.token, 
+                        tar_name, 
+                        progress_mode=self.progress_mode,
+                        video_filename=mp4_file,
+                        control_filename=csv_file,
+                        video_duration_seconds=metadata_dict.get('duration') if metadata_dict else None,
+                        video_width=RECORDING_WIDTH,
+                        video_height=RECORDING_HEIGHT,
+                        video_fps=FPS
+                        # video_codec not set here since it depends on user's OBS settings
+                    )
                     with open(os.path.join(root, '.uploaded'), 'w') as f:
                         f.write('')
                     self.staged_files.append(root)
@@ -352,7 +379,16 @@ class OWLDataManager:
             print(f"PROGRESS: {json.dumps(progress_data)}")
         
         try:
-            upload_archive(self.token, tar_name, progress_mode=self.progress_mode)
+            # Pass aggregated metadata for bundled uploads
+            upload_archive(
+                self.token, 
+                tar_name, 
+                progress_mode=self.progress_mode,
+                video_duration_seconds=self.total_duration,  # Total duration of all videos in bundle
+                video_width=RECORDING_WIDTH,
+                video_height=RECORDING_HEIGHT,
+                video_fps=FPS
+            )
             
             if self.progress_mode:
                 progress_data = {"phase": "upload", "action": "complete", "tar_file": tar_name}
