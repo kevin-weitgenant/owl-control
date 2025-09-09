@@ -6,6 +6,8 @@ Constants used throughout the application
 FPS = 60  # Frames per second for tracking
 MIN_FOOTAGE = 30 # This many seconds needed before something is "worth saving"
 MAX_FOOTAGE = 60*10 # How long should each individual clip be?
+RECORDING_WIDTH = 640  # Video recording width
+RECORDING_HEIGHT = 360  # Video recording height
 
 # API endpoints
 API_BASE_URL = "https://api.openworldlabs.ai"
