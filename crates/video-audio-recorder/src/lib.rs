@@ -18,8 +18,9 @@ use obws::{
     },
 };
 use windows::Win32::{
-    Foundation::POINT,
+    Foundation::{HWND, POINT},
     Graphics::Gdi::{GetMonitorInfoW, MONITORINFO, MonitorFromPoint},
+    UI::HiDpi::GetDpiForWindow,
 };
 
 pub struct WindowRecorder {
@@ -46,7 +47,7 @@ impl WindowRecorder {
     pub async fn start_recording(
         dummy_video_path: &Path,
         _pid: u32,
-        _hwnd: usize,
+        hwnd: usize,
     ) -> Result<WindowRecorder> {
         let recording_path = dummy_video_path
             .parent()
@@ -175,16 +176,24 @@ impl WindowRecorder {
         tracing::info!("OBS confirmed recording path: {:?}", current_path.value);
 
         // Monitor/resolution info
-        let (monitor_width, monitor_height) = get_primary_monitor_resolution()
+        let resolution = get_primary_monitor_resolution(hwnd)
             .ok_or_eyre("Failed to get primary monitor resolution")?;
+
+        // Log both resolutions for debugging
+        tracing::info!(
+            "Monitor resolution - Raw: {:?}, Scaled: {:?}, Scale factor: {:.2}",
+            resolution.raw_size,
+            resolution.scaled_size,
+            resolution.scale_factor
+        );
 
         // Set video settings
         config
             .set_video_settings(SetVideoSettings {
                 fps_numerator: Some(FPS),
                 fps_denominator: Some(1),
-                base_width: Some(monitor_width as u32),
-                base_height: Some(monitor_height as u32),
+                base_width: Some(resolution.scaled_size.0 as u32),
+                base_height: Some(resolution.scaled_size.1 as u32),
                 output_width: Some(RECORDING_WIDTH),
                 output_height: Some(RECORDING_HEIGHT),
             })
@@ -286,7 +295,13 @@ impl Drop for WindowRecorder {
     }
 }
 
-fn get_primary_monitor_resolution() -> Option<(i32, i32)> {
+#[derive(Debug, Clone)]
+struct MonitorResolution {
+    pub raw_size: (u32, u32),
+    pub scaled_size: (u32, u32),
+    pub scale_factor: f32,
+}
+fn get_primary_monitor_resolution(hwnd: usize) -> Option<MonitorResolution> {
     // Get the primary monitor handle
     let primary_monitor = unsafe {
         MonitorFromPoint(
@@ -306,12 +321,23 @@ fn get_primary_monitor_resolution() -> Option<(i32, i32)> {
     };
 
     let success = unsafe { GetMonitorInfoW(primary_monitor, &mut monitor_info) };
-
-    if success.as_bool() {
-        let width = monitor_info.rcMonitor.right - monitor_info.rcMonitor.left;
-        let height = monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top;
-        Some((width, height))
-    } else {
-        None
+    if !success.as_bool() {
+        return None;
     }
+    let raw_width = (monitor_info.rcMonitor.right - monitor_info.rcMonitor.left) as u32;
+    let raw_height = (monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top) as u32;
+
+    // Get the DPI for this specific window
+    let window_handle = HWND(hwnd as *mut std::ffi::c_void);
+    let dpi = unsafe { GetDpiForWindow(window_handle) };
+
+    let scale_factor = if dpi > 0 { dpi as f32 / 96.0 } else { 1.0 };
+    let scaled_width = (raw_width as f32 * scale_factor) as u32;
+    let scaled_height = (raw_height as f32 * scale_factor) as u32;
+
+    Some(MonitorResolution {
+        raw_size: (raw_width, raw_height),
+        scaled_size: (scaled_width, scaled_height),
+        scale_factor,
+    })
 }
