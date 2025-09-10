@@ -17,9 +17,15 @@ use obws::{
         scenes::SceneId,
     },
 };
-use windows::Win32::{
-    Foundation::POINT,
-    Graphics::Gdi::{GetMonitorInfoW, MONITORINFO, MonitorFromPoint},
+use windows::{
+    Win32::{
+        Foundation::POINT,
+        Graphics::Gdi::{
+            DEVMODEW, ENUM_CURRENT_SETTINGS, EnumDisplaySettingsW, GetMonitorInfoW, MONITORINFO,
+            MONITORINFOEXW, MonitorFromPoint,
+        },
+    },
+    core::PCWSTR,
 };
 
 pub struct WindowRecorder {
@@ -175,16 +181,19 @@ impl WindowRecorder {
         tracing::info!("OBS confirmed recording path: {:?}", current_path.value);
 
         // Monitor/resolution info
-        let (monitor_width, monitor_height) = get_primary_monitor_resolution()
+        let resolution = get_primary_monitor_resolution()
             .ok_or_eyre("Failed to get primary monitor resolution")?;
+
+        // Log both resolutions for debugging
+        tracing::info!("Monitor resolution: {resolution:?}");
 
         // Set video settings
         config
             .set_video_settings(SetVideoSettings {
                 fps_numerator: Some(FPS),
                 fps_denominator: Some(1),
-                base_width: Some(monitor_width as u32),
-                base_height: Some(monitor_height as u32),
+                base_width: Some(resolution.0 as u32),
+                base_height: Some(resolution.1 as u32),
                 output_width: Some(RECORDING_WIDTH),
                 output_height: Some(RECORDING_HEIGHT),
             })
@@ -286,7 +295,7 @@ impl Drop for WindowRecorder {
     }
 }
 
-fn get_primary_monitor_resolution() -> Option<(i32, i32)> {
+fn get_primary_monitor_resolution() -> Option<(u32, u32)> {
     // Get the primary monitor handle
     let primary_monitor = unsafe {
         MonitorFromPoint(
@@ -294,24 +303,41 @@ fn get_primary_monitor_resolution() -> Option<(i32, i32)> {
             windows::Win32::Graphics::Gdi::MONITOR_DEFAULTTOPRIMARY,
         )
     };
-
     if primary_monitor.is_invalid() {
         return None;
     }
 
-    // Get monitor info
-    let mut monitor_info = MONITORINFO {
-        cbSize: std::mem::size_of::<MONITORINFO>() as u32,
+    // Get the monitor info
+    let mut monitor_info = MONITORINFOEXW {
+        monitorInfo: MONITORINFO {
+            cbSize: std::mem::size_of::<MONITORINFOEXW>() as u32,
+            ..Default::default()
+        },
         ..Default::default()
     };
-
-    let success = unsafe { GetMonitorInfoW(primary_monitor, &mut monitor_info) };
-
-    if success.as_bool() {
-        let width = monitor_info.rcMonitor.right - monitor_info.rcMonitor.left;
-        let height = monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top;
-        Some((width, height))
-    } else {
-        None
+    unsafe {
+        GetMonitorInfoW(
+            primary_monitor,
+            &mut monitor_info as *mut _ as *mut MONITORINFO,
+        )
     }
+    .ok()
+    .ok()?;
+
+    // Get the display mode
+    let mut devmode = DEVMODEW {
+        dmSize: std::mem::size_of::<DEVMODEW>() as u16,
+        ..Default::default()
+    };
+    unsafe {
+        EnumDisplaySettingsW(
+            PCWSTR(monitor_info.szDevice.as_ptr()),
+            ENUM_CURRENT_SETTINGS,
+            &mut devmode,
+        )
+    }
+    .ok()
+    .ok()?;
+
+    Some((devmode.dmPelsWidth as u32, devmode.dmPelsHeight as u32))
 }
