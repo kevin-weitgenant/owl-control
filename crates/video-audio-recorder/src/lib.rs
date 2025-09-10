@@ -17,10 +17,15 @@ use obws::{
         scenes::SceneId,
     },
 };
-use windows::Win32::{
-    Foundation::{HWND, POINT},
-    Graphics::Gdi::{GetMonitorInfoW, MONITORINFO, MonitorFromPoint},
-    UI::HiDpi::GetDpiForWindow,
+use windows::{
+    Win32::{
+        Foundation::POINT,
+        Graphics::Gdi::{
+            DEVMODEW, ENUM_CURRENT_SETTINGS, EnumDisplaySettingsW, GetMonitorInfoW, MONITORINFO,
+            MONITORINFOEXW, MonitorFromPoint,
+        },
+    },
+    core::PCWSTR,
 };
 
 pub struct WindowRecorder {
@@ -47,7 +52,7 @@ impl WindowRecorder {
     pub async fn start_recording(
         dummy_video_path: &Path,
         _pid: u32,
-        hwnd: usize,
+        _hwnd: usize,
     ) -> Result<WindowRecorder> {
         let recording_path = dummy_video_path
             .parent()
@@ -176,24 +181,19 @@ impl WindowRecorder {
         tracing::info!("OBS confirmed recording path: {:?}", current_path.value);
 
         // Monitor/resolution info
-        let resolution = get_primary_monitor_resolution(hwnd)
+        let resolution = get_primary_monitor_resolution()
             .ok_or_eyre("Failed to get primary monitor resolution")?;
 
         // Log both resolutions for debugging
-        tracing::info!(
-            "Monitor resolution - Raw: {:?}, Scaled: {:?}, Scale factor: {:.2}",
-            resolution.raw_size,
-            resolution.scaled_size,
-            resolution.scale_factor
-        );
+        tracing::info!("Monitor resolution: {resolution:?}");
 
         // Set video settings
         config
             .set_video_settings(SetVideoSettings {
                 fps_numerator: Some(FPS),
                 fps_denominator: Some(1),
-                base_width: Some(resolution.scaled_size.0 as u32),
-                base_height: Some(resolution.scaled_size.1 as u32),
+                base_width: Some(resolution.0 as u32),
+                base_height: Some(resolution.1 as u32),
                 output_width: Some(RECORDING_WIDTH),
                 output_height: Some(RECORDING_HEIGHT),
             })
@@ -295,13 +295,7 @@ impl Drop for WindowRecorder {
     }
 }
 
-#[derive(Debug, Clone)]
-struct MonitorResolution {
-    pub raw_size: (u32, u32),
-    pub scaled_size: (u32, u32),
-    pub scale_factor: f32,
-}
-fn get_primary_monitor_resolution(hwnd: usize) -> Option<MonitorResolution> {
+fn get_primary_monitor_resolution() -> Option<(u32, u32)> {
     // Get the primary monitor handle
     let primary_monitor = unsafe {
         MonitorFromPoint(
@@ -309,35 +303,41 @@ fn get_primary_monitor_resolution(hwnd: usize) -> Option<MonitorResolution> {
             windows::Win32::Graphics::Gdi::MONITOR_DEFAULTTOPRIMARY,
         )
     };
-
     if primary_monitor.is_invalid() {
         return None;
     }
 
-    // Get monitor info
-    let mut monitor_info = MONITORINFO {
-        cbSize: std::mem::size_of::<MONITORINFO>() as u32,
+    // Get the monitor info
+    let mut monitor_info = MONITORINFOEXW {
+        monitorInfo: MONITORINFO {
+            cbSize: std::mem::size_of::<MONITORINFOEXW>() as u32,
+            ..Default::default()
+        },
         ..Default::default()
     };
-
-    let success = unsafe { GetMonitorInfoW(primary_monitor, &mut monitor_info) };
-    if !success.as_bool() {
-        return None;
+    unsafe {
+        GetMonitorInfoW(
+            primary_monitor,
+            &mut monitor_info as *mut _ as *mut MONITORINFO,
+        )
     }
-    let raw_width = (monitor_info.rcMonitor.right - monitor_info.rcMonitor.left) as u32;
-    let raw_height = (monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top) as u32;
+    .ok()
+    .ok()?;
 
-    // Get the DPI for this specific window
-    let window_handle = HWND(hwnd as *mut std::ffi::c_void);
-    let dpi = unsafe { GetDpiForWindow(window_handle) };
+    // Get the display mode
+    let mut devmode = DEVMODEW {
+        dmSize: std::mem::size_of::<DEVMODEW>() as u16,
+        ..Default::default()
+    };
+    unsafe {
+        EnumDisplaySettingsW(
+            PCWSTR(monitor_info.szDevice.as_ptr()),
+            ENUM_CURRENT_SETTINGS,
+            &mut devmode,
+        )
+    }
+    .ok()
+    .ok()?;
 
-    let scale_factor = if dpi > 0 { dpi as f32 / 96.0 } else { 1.0 };
-    let scaled_width = (raw_width as f32 * scale_factor) as u32;
-    let scaled_height = (raw_height as f32 * scale_factor) as u32;
-
-    Some(MonitorResolution {
-        raw_size: (raw_width, raw_height),
-        scaled_size: (scaled_width, scaled_height),
-        scale_factor,
-    })
+    Some((devmode.dmPelsWidth as u32, devmode.dmPelsHeight as u32))
 }
