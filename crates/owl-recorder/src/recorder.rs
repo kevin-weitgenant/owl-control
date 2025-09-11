@@ -10,8 +10,8 @@ use windows::{
 use crate::{
     find_game::get_foregrounded_game,
     recording::{InputParameters, MetadataParameters, Recording, WindowParameters},
-    unsupported_games::UNSUPPORTED_GAMES,
 };
+use constants::unsupported_games::UNSUPPORTED_GAMES;
 
 pub(crate) struct Recorder<D> {
     recording_dir: D,

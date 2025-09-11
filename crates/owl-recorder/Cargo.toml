@@ -19,3 +19,5 @@ tauri-winrt-notification.workspace = true
 sysinfo.workspace = true
 obws.workspace = true
 windows.workspace = true
+
+constants = { path = "../constants" }

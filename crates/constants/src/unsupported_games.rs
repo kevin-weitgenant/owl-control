@@ -17,6 +17,9 @@ const fn ug(
 
 const ENOUGH_DATA_REASON: &str = "We have enough data for now.";
 
+// -------------------------------------------------------------------
+// AFTER UPDATING, `cargo run --bin update-unsupported-games` FOR DOCS
+// -------------------------------------------------------------------
 pub const UNSUPPORTED_GAMES: &[UnsupportedGame] = &[
     ug(
         "Minecraft",
