@@ -42,7 +42,11 @@ where
             get_foregrounded_game().wrap_err("failed to get foregrounded game")?
         else {
             tracing::warn!("No game window found");
-            Self::show_invalid_game_notification();
+            show_notification(
+                "Invalid game",
+                "Not recording foreground window.",
+                "It's either not a supported game or not fullscreen.",
+            );
             return Ok(());
         };
 
@@ -57,7 +61,7 @@ where
         let recording = Recording::start(
             MetadataParameters {
                 path: recording_location.join("metadata.json"),
-                game_exe,
+                game_exe: game_exe.clone(),
             },
             WindowParameters {
                 path: recording_location.join("recording.mp4"),
@@ -68,9 +72,26 @@ where
                 path: recording_location.join("inputs.csv"),
             },
         )
-        .await?;
+        .await;
 
-        Self::show_start_notification(recording.game_exe());
+        let recording = match recording {
+            Ok(recording) => recording,
+            Err(e) => {
+                tracing::error!(game_exe=?game_exe, e=?e, "Failed to start recording");
+                show_notification(
+                    &format!("Failed to start recording for {game_exe}"),
+                    &e.to_string(),
+                    "",
+                );
+                return Ok(());
+            }
+        };
+
+        show_notification(
+            "Started recording",
+            &format!("Recording {}", recording.game_exe()),
+            "",
+        );
 
         self.recording = Some(recording);
 
@@ -90,44 +111,32 @@ where
             return Ok(());
         };
 
-        Self::show_stop_notification(recording.game_exe());
+        show_notification(
+            "Stopped recording",
+            &format!("No longer recording {}", recording.game_exe()),
+            "",
+        );
 
         recording.stop().await?;
 
         Ok(())
     }
+}
 
-    fn show_start_notification(exe_name: &str) {
-        if let Err(e) = Toast::new(Toast::POWERSHELL_APP_ID)
-            .title("Started recording")
-            .text1(&format!("Recording {exe_name}"))
-            .sound(None)
-            .show()
-        {
-            tracing::error!("Failed to show start notification: {e}");
-        };
+fn show_notification(title: &str, text1: &str, text2: &str) {
+    let mut toast = Toast::new(Toast::POWERSHELL_APP_ID);
+    if !title.is_empty() {
+        toast = toast.title(title);
     }
-
-    fn show_invalid_game_notification() {
-        if let Err(e) = Toast::new(Toast::POWERSHELL_APP_ID)
-            .title("Invalid game")
-            .text1(&format!("Not recording foreground window."))
-            .text2("It's either not a supported game or not fullscreen.")
-            .sound(None)
-            .show()
-        {
-            tracing::error!("Failed to show invalid game notification: {e}");
-        };
+    if !text1.is_empty() {
+        toast = toast.text1(text1);
     }
-
-    fn show_stop_notification(exe_name: &str) {
-        if let Err(e) = Toast::new(Toast::POWERSHELL_APP_ID)
-            .title("Stopped recording")
-            .text1(&format!("No longer recording {exe_name}"))
-            .sound(None)
-            .show()
-        {
-            tracing::error!("Failed to show stop notification: {e}");
-        };
+    if !text2.is_empty() {
+        toast = toast.text2(text2);
+    }
+    if let Err(e) = toast.sound(None).show() {
+        tracing::error!(
+            "Failed to show notification (title: {title}, text1: {text1}, text2: {text2}): {e}"
+        );
     }
 }

@@ -63,7 +63,7 @@ impl WindowRecorder {
         // Connect to OBS
         let client = Client::connect("localhost", 4455, None::<&str>)
             .await
-            .wrap_err("Failed to connect to OBS")?;
+            .wrap_err("Failed to connect to OBS. Is it running?")?;
 
         // Pull out sub-APIs for easier access
         let profiles = client.profiles();

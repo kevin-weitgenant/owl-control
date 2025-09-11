@@ -55,7 +55,6 @@ impl Recording {
 
         let window_recorder =
             WindowRecorder::start_recording(&video_path, pid.0, hwnd.0.expose_provenance()).await?;
-
         let input_recorder = InputRecorder::start(&csv_path).await?;
 
         Ok(Self {
