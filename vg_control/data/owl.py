@@ -421,21 +421,13 @@ class OWLDataManager:
             if '.uploaded' in files:
                 os.remove(os.path.join(root, '.uploaded'))
 
-    def delete_uploaded(self):
-        for root, dirs, files in os.walk(ROOT_DIR):
-            if '.uploaded' in files:
-                shutil.rmtree(root)
 
-
-def upload_all_files(token, delete_uploaded=False, progress_mode=False, bundle_sessions=False):
+def upload_all_files(token, progress_mode=False, bundle_sessions=False):
     manager = OWLDataManager(token, progress_mode=progress_mode, bundle_sessions=bundle_sessions)
     has_files = manager.stage()
     if has_files:
         manager.compress()
         manager.upload()
-
-    if delete_uploaded:
-        manager.delete_uploaded()
     
     # Output final stats for the main process to capture
     if progress_mode:
@@ -460,12 +452,8 @@ if __name__ == "__main__":
         sys.exit(1)
         
     token = sys.argv[1]
-    del_uploaded = False
-    if len(sys.argv) > 2:
-        del_uploaded = sys.argv[2].lower() == 'true'
-
     try:
-        upload_all_files(token, delete_uploaded=del_uploaded)
+        upload_all_files(token)
         print("Upload completed successfully")
     except Exception as e:
         print(f"Error during upload: {str(e)}")
