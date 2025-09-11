@@ -49,14 +49,14 @@ def filter_invalid_sample(vid_path, csv_path, meta_path) -> list[str]:
     if btn_stats['wasd_apm'] < 10:  # Less than 20 actions per minute is likely AFK/inactive
         invalid_reasons.append(f"WASD actions per minute too low: {btn_stats['wasd_apm']:.1f}")
         
-    if btn_stats['total_keyboard_events'] < 100:  # Too few keyboard events overall
+    if btn_stats['total_keyboard_events'] < 50:  # Too few keyboard events overall
         invalid_reasons.append(f"Too few keyboard events: {btn_stats['total_keyboard_events']}")
 
     # Filter out samples with abnormal mouse behavior
     if mouse_stats['overall_max'] < 0.05:  # Very little mouse movement
         invalid_reasons.append(f"Mouse movement too small: {mouse_stats['overall_max']:.3f}")
         
-    if mouse_stats['overall_max'] > 500:  # Unreasonably large mouse movements
+    if mouse_stats['overall_max'] > 10_000:  # Unreasonably large mouse movements
         invalid_reasons.append(f"Mouse movement too large: {mouse_stats['overall_max']:.1f}")
 
     # Add stats to metadata
