@@ -2,6 +2,10 @@ use std::path::PathBuf;
 
 use color_eyre::{Result, eyre::Context as _};
 use tauri_winrt_notification::Toast;
+use windows::{
+    Win32::UI::WindowsAndMessaging::{MB_ICONERROR, MessageBoxW},
+    core::HSTRING,
+};
 
 use crate::{
     find_game::get_foregrounded_game,
@@ -46,6 +50,7 @@ where
                 "Invalid game",
                 "Not recording foreground window.",
                 "It's either not a supported game or not fullscreen.",
+                NotificationType::Error,
             );
             return Ok(());
         };
@@ -79,9 +84,10 @@ where
             Err(e) => {
                 tracing::error!(game_exe=?game_exe, e=?e, "Failed to start recording");
                 show_notification(
-                    &format!("Failed to start recording for {game_exe}"),
+                    &format!("Failed to start recording for `{game_exe}`"),
                     &e.to_string(),
                     "",
+                    NotificationType::Error,
                 );
                 return Ok(());
             }
@@ -89,8 +95,9 @@ where
 
         show_notification(
             "Started recording",
-            &format!("Recording {}", recording.game_exe()),
+            &format!("Recording `{}`", recording.game_exe()),
             "",
+            NotificationType::Info,
         );
 
         self.recording = Some(recording);
@@ -113,8 +120,9 @@ where
 
         show_notification(
             "Stopped recording",
-            &format!("No longer recording {}", recording.game_exe()),
+            &format!("No longer recording `{}`", recording.game_exe()),
             "",
+            NotificationType::Info,
         );
 
         recording.stop().await?;
@@ -123,20 +131,36 @@ where
     }
 }
 
-fn show_notification(title: &str, text1: &str, text2: &str) {
-    let mut toast = Toast::new(Toast::POWERSHELL_APP_ID);
-    if !title.is_empty() {
-        toast = toast.title(title);
-    }
-    if !text1.is_empty() {
-        toast = toast.text1(text1);
-    }
-    if !text2.is_empty() {
-        toast = toast.text2(text2);
-    }
-    if let Err(e) = toast.sound(None).show() {
-        tracing::error!(
-            "Failed to show notification (title: {title}, text1: {text1}, text2: {text2}): {e}"
-        );
+pub enum NotificationType {
+    Info,
+    Error,
+}
+fn show_notification(title: &str, text1: &str, text2: &str, notification_type: NotificationType) {
+    match notification_type {
+        NotificationType::Info => {
+            let mut toast = Toast::new(Toast::POWERSHELL_APP_ID);
+            if !title.is_empty() {
+                toast = toast.title(title);
+            }
+            if !text1.is_empty() {
+                toast = toast.text1(text1);
+            }
+            if !text2.is_empty() {
+                toast = toast.text2(text2);
+            }
+            if let Err(e) = toast.sound(None).show() {
+                tracing::error!(
+                    "Failed to show notification (title: {title}, text1: {text1}, text2: {text2}): {e}"
+                );
+            }
+        }
+        NotificationType::Error => unsafe {
+            MessageBoxW(
+                None,
+                &HSTRING::from(format!("{text1}\n{text2}")),
+                &HSTRING::from(title),
+                MB_ICONERROR,
+            );
+        },
     }
 }
