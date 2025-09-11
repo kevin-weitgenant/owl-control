@@ -16,23 +16,22 @@ from .uploader import upload_archive
 
 # Directory structure might be nested, but the root dirs will always have a .mp4 and .csv
 
-def filter_invalid_sample(vid_path, csv_path, meta_path, verbose = False):
+def filter_invalid_sample(vid_path, csv_path, meta_path) -> list[str]:
     """
-    Detect invalid videos
+    Detect invalid videos.
+
+    Return value is a list of reasons for invalidity. If empty, the sample is valid.
     """
     with open(meta_path) as f:
         metadata = json.load(f)
     duration = float(metadata['duration'])
     
-    is_invalid = False
+    invalid_reasons = []
 
     if duration < MIN_FOOTAGE:
-        if verbose:
-            print(f"Video length {duration:.2f} too short.")
-        is_invalid = True
+        invalid_reasons.append(f"Video length {duration:.2f} too short.")
     if duration > MAX_FOOTAGE + 10:
-        if verbose:
-            print(f"Video length {duration:.2f} too long.")
+        invalid_reasons.append(f"Video length {duration:.2f} too long.")
     
     bitrate = 2 # mbps
     # Get video file size in MB
@@ -41,34 +40,24 @@ def filter_invalid_sample(vid_path, csv_path, meta_path, verbose = False):
     expected_bits = bitrate * duration
 
     if vid_size < 0.25 * expected_bits:  # Less than quarter of expected size is unlikely
-        if verbose:
-            print(f"Video size {vid_size:.2f} Mb too small compared to expected {expected_bits:.2f} Mb")
-        is_invalid = True
+        invalid_reasons.append(f"Video size {vid_size:.2f} Mb too small compared to expected {expected_bits:.2f} Mb")
     
     btn_stats = get_button_stats(csv_path)
     mouse_stats = get_mouse_stats(csv_path)
 
     # Filter out samples with too little activity
     if btn_stats['wasd_apm'] < 10:  # Less than 20 actions per minute is likely AFK/inactive
-        if verbose:
-            print(f"WASD actions per minute too low: {btn_stats['wasd_apm']:.1f}")
-        is_invalid = True
+        invalid_reasons.append(f"WASD actions per minute too low: {btn_stats['wasd_apm']:.1f}")
         
     if btn_stats['total_keyboard_events'] < 100:  # Too few keyboard events overall
-        if verbose:
-            print(f"Too few keyboard events: {btn_stats['total_keyboard_events']}")
-        is_invalid = True
+        invalid_reasons.append(f"Too few keyboard events: {btn_stats['total_keyboard_events']}")
 
     # Filter out samples with abnormal mouse behavior
     if mouse_stats['overall_max'] < 0.05:  # Very little mouse movement
-        if verbose:
-            print(f"Mouse movement too small: {mouse_stats['overall_max']:.3f}")
-        is_invalid = True
+        invalid_reasons.append(f"Mouse movement too small: {mouse_stats['overall_max']:.3f}")
         
     if mouse_stats['overall_max'] > 500:  # Unreasonably large mouse movements
-        if verbose:
-            print(f"Mouse movement too large: {mouse_stats['overall_max']:.1f}")
-        is_invalid = True
+        invalid_reasons.append(f"Mouse movement too large: {mouse_stats['overall_max']:.1f}")
 
     # Add stats to metadata
     extra_metadata = {
@@ -86,12 +75,12 @@ def filter_invalid_sample(vid_path, csv_path, meta_path, verbose = False):
         }
     }
 
-    if not 'input_stats' in metadata:
+    if 'input_stats' not in metadata:
         metadata.update(extra_metadata)
         with open(meta_path, 'w') as f:
             json.dump(metadata, f, indent=4)
 
-    return is_invalid
+    return invalid_reasons
 
 class OWLDataManager:
     def __init__(self, token, progress_mode=False):
@@ -126,15 +115,26 @@ class OWLDataManager:
                 meta_path = os.path.join(root, 'metadata.json')
                 
                 # Check validity
+                invalid_reasons = []
                 try:
-                    invalid = filter_invalid_sample(mp4_path, csv_path, meta_path, verbose)
+                    invalid_reasons = filter_invalid_sample(mp4_path, csv_path, meta_path)
                 except Exception as e:
-                    print(f"Warning: Invalid data skipped: {e}")
-                    invalid = True
-                
-                if invalid:
-                    with open(os.path.join(root, '.invalid'), 'w') as f:
-                        pass
+                    invalid_reasons.append(f"Error checking validity: {e}")
+
+                if len(invalid_reasons) > 0:
+                    invalid_path = os.path.join(root, '.invalid')
+                    
+                    if not verbose:
+                        print(f"Failed to process {os.path.abspath(mp4_path)}; see {os.path.abspath(invalid_path)} for details")
+                    else:
+                        print(f"Failed to process {os.path.abspath(mp4_path)}:")
+                        for reason in invalid_reasons:
+                            print(f"  - {reason}")
+
+                    with open(invalid_path, 'w') as f:
+                        for reason in invalid_reasons:
+                            f.write(reason + '\n')
+
                     continue
                 
                 # Read duration from metadata and track bytes
