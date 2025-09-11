@@ -8,6 +8,7 @@ mod raw_input_debouncer;
 mod recorder;
 mod recording;
 mod window_recorder;
+mod unsupported_games;
 
 use std::{
     path::PathBuf,

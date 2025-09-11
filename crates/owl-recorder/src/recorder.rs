@@ -10,6 +10,7 @@ use windows::{
 use crate::{
     find_game::get_foregrounded_game,
     recording::{InputParameters, MetadataParameters, Recording, WindowParameters},
+    unsupported_games::UNSUPPORTED_GAMES,
 };
 
 pub(crate) struct Recorder<D> {
@@ -54,6 +55,24 @@ where
             );
             return Ok(());
         };
+
+        let game_exe_without_extension = game_exe
+            .split('.')
+            .next()
+            .unwrap_or(&game_exe)
+            .to_lowercase();
+        if let Some(unsupported_game) = UNSUPPORTED_GAMES
+            .iter()
+            .find(|ug| ug.binaries.contains(&game_exe_without_extension.as_str()))
+        {
+            show_notification(
+                "Unsupported game",
+                &format!("{} ({}) is not supported!", unsupported_game.name, game_exe),
+                &format!("Reason: {}", unsupported_game.reason),
+                NotificationType::Error,
+            );
+            return Ok(());
+        }
 
         tracing::info!(
             game_exe,
