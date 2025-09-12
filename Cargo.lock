@@ -569,6 +569,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "input-capture"
+version = "0.0.0"
+dependencies = [
+ "color-eyre",
+ "tracing",
+ "tracing-subscriber",
+ "windows 0.61.3",
+]
+
+[[package]]
 name = "is_terminal_polyfill"
 version = "1.70.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -737,8 +747,8 @@ dependencies = [
  "color-eyre",
  "constants",
  "game-process",
+ "input-capture",
  "obws",
- "raw-input",
  "serde",
  "serde_json",
  "sysinfo",
@@ -867,16 +877,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "99d9a13982dcf210057a8a78572b2217b667c3beacbf3a0d8b454f6f82837d38"
 dependencies = [
  "getrandom",
-]
-
-[[package]]
-name = "raw-input"
-version = "0.0.0"
-dependencies = [
- "color-eyre",
- "tracing",
- "tracing-subscriber",
- "windows 0.61.3",
 ]
 
 [[package]]

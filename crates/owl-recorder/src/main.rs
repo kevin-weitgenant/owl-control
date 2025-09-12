@@ -18,7 +18,7 @@ use clap::Parser;
 use color_eyre::{Result, eyre::eyre};
 
 use game_process::does_process_exist;
-use raw_input::{PressState, RawInput};
+use input_capture::{PressState, RawInput};
 use tokio::{
     sync::{mpsc, oneshot},
     time::MissedTickBehavior,
@@ -131,8 +131,8 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-fn keycode_from_event(event: &raw_input::Event) -> Option<u16> {
-    if let raw_input::Event::KeyPress {
+fn keycode_from_event(event: &input_capture::Event) -> Option<u16> {
+    if let input_capture::Event::KeyPress {
         key,
         press_state: PressState::Pressed,
     } = event
@@ -143,11 +143,12 @@ fn keycode_from_event(event: &raw_input::Event) -> Option<u16> {
     }
 }
 
-fn listen_for_raw_inputs() -> mpsc::Receiver<raw_input::Event> {
+fn listen_for_raw_inputs() -> mpsc::Receiver<input_capture::Event> {
     let (input_tx, input_rx) = mpsc::channel(1);
 
     std::thread::spawn(move || {
-        let mut raw_input = Some(RawInput::initialize().expect("raw input failed to initialize"));
+        let mut input_capture =
+            Some(RawInput::initialize().expect("raw input failed to initialize"));
         let mut debouncer = EventDebouncer::new();
 
         RawInput::run_queue(|event| {
@@ -156,7 +157,7 @@ fn listen_for_raw_inputs() -> mpsc::Receiver<raw_input::Event> {
             }
             if input_tx.blocking_send(event).is_err() {
                 tracing::debug!("Input channel closed, stopping raw input listener");
-                raw_input.take();
+                input_capture.take();
             }
         })
         .expect("failed to run windows message queue");

@@ -286,21 +286,3 @@ impl Drop for RawInput {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    #[ignore = "run manually"]
-    fn print_keypresses() -> Result<()> {
-        color_eyre::install()?;
-        tracing_subscriber::fmt::init();
-
-        let _raw_input = RawInput::initialize().expect("Failed to initialize raw input");
-        RawInput::run_queue(|event| {
-            tracing::info!(?event, "Received raw input event");
-        })
-        .wrap_err("failed to run message queue")
-    }
-}

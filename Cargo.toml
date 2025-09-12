@@ -3,7 +3,7 @@ resolver = "3"
 members = ["crates/*"]
 
 [workspace.dependencies]
-raw-input = { path = "crates/raw-input" }
+input-capture = { path = "crates/input-capture" }
 game-process = { path = "crates/game-process" }
 clap = { version = "4.5.39", features = ["derive"] }
 tracing = "0.1.41"
