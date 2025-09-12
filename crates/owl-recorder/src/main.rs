@@ -25,8 +25,8 @@ use tokio::{
 };
 
 use crate::{
-    idle::IdlenessTracker, keycode::lookup_keycode,
-    raw_input_debouncer::EventDebouncer, recorder::Recorder,
+    idle::IdlenessTracker, keycode::lookup_keycode, raw_input_debouncer::EventDebouncer,
+    recorder::Recorder,
 };
 
 #[derive(Parser, Debug)]
@@ -61,17 +61,15 @@ async fn main() -> Result<()> {
     let stop_key =
         lookup_keycode(&stop_key).ok_or_else(|| eyre!("Invalid stop key: {stop_key}"))?;
 
-    let mut recorder = Recorder::new(
-        || {
-            recording_location.join(
-                SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs()
-                    .to_string(),
-            )
-        },
-    );
+    let mut recorder = Recorder::new(|| {
+        recording_location.join(
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs()
+                .to_string(),
+        )
+    });
 
     let mut input_rx = listen_for_raw_inputs();
 
@@ -115,7 +113,7 @@ async fn main() -> Result<()> {
                         recorder.stop().await?;
                     } else if idleness_tracker.is_idle() {
                         tracing::info!("No input detected for 5 seconds, stopping recording");
-                        recorder.stop().await?; 
+                        recorder.stop().await?;
                         start_on_activity = true;
                     } else if recording.elapsed() > MAX_RECORDING_DURATION {
                         tracing::info!("Recording duration exceeded {} s, restarting recording", MAX_RECORDING_DURATION.as_secs());

@@ -20,13 +20,19 @@ fn main() {
     output.push_str("Please do not submit data for these games.\n\n");
 
     output.push_str("## Sufficient data captured\n\n");
-    for game in UNSUPPORTED_GAMES.iter().filter(|game| game.reason == ENOUGH_DATA_REASON) {
+    for game in UNSUPPORTED_GAMES
+        .iter()
+        .filter(|game| game.reason == ENOUGH_DATA_REASON)
+    {
         output.push_str(&format!("- {}\n", game.name));
     }
     output.push_str("\n");
 
     output.push_str("## Unsupported games\n\n");
-    for game in UNSUPPORTED_GAMES.iter().filter(|game| game.reason != ENOUGH_DATA_REASON) {
+    for game in UNSUPPORTED_GAMES
+        .iter()
+        .filter(|game| game.reason != ENOUGH_DATA_REASON)
+    {
         output.push_str(&format!("- {}: {}\n", game.name, game.reason));
     }
 

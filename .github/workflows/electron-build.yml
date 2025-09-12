@@ -5,38 +5,38 @@ on:
     branches:
       - main
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
   workflow_dispatch:
 
 jobs:
   release:
     name: Build and Release Electron App
     runs-on: ${{ matrix.os }}
-    
+
     strategy:
       matrix:
         os: [windows-latest]
         # os: [macos-latest, windows-latest, ubuntu-latest]  # Uncomment to enable all platforms
-        
+
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v4
-        
+
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: 'npm'
-          
+          cache: "npm"
+
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v6
-          
+
       - name: Install System Dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-dev python3-tk python3-pil.imagetk
-          
+
       - name: Install Python Dependencies
         run: |
           uv sync
@@ -50,15 +50,15 @@ jobs:
       - name: Build recorder
         run: |
           cargo build --bin owl-recorder --release
-        
+
       - name: Build Webpack
         run: npm run build
-        
+
       - name: Build Electron App
         run: npm run package
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -72,7 +72,7 @@ jobs:
             dist/*.exe
             dist/*.zip
           if-no-files-found: warn
-          
+
   create-release:
     needs: release
     runs-on: ubuntu-latest
@@ -81,14 +81,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-          
+
       - name: Display structure of downloaded files
         run: |
           echo "=== All artifacts ==="
           ls -la artifacts/
           echo "=== Contents of each artifact ==="
           find artifacts -type f -name "*.exe" -o -name "*.zip" | head -20
-        
+
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
