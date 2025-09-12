@@ -47,17 +47,8 @@ jobs:
       - name: Download requirements
         run: npm run package:download-requirements
 
-      - name: Install gstreamer
-        run: |
-          Start-Process msiexec -Wait -ArgumentList '/qn /a build-resources\downloads\gstreamer-1.0-msvc-x86_64.msi /Liwearumop install.log'
-          Get-Content -Path install.log
-          Start-Process msiexec -Wait -ArgumentList '/qn /a build-resources\downloads\gstreamer-1.0-devel-msvc-x86_64.msi /Liwearumop install.log'
-          Get-Content -Path install.log
-
       - name: Build recorder
         run: |
-          # This one line took me hours to figure out
-          $env:PATH = "D:\PFiles64\gstreamer\1.0\msvc_x86_64\bin;$env:PATH"
           cargo build --bin owl-recorder --release
         
       - name: Build Webpack
