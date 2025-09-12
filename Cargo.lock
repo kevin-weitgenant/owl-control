@@ -573,6 +573,7 @@ name = "input-capture"
 version = "0.0.0"
 dependencies = [
  "color-eyre",
+ "tokio",
  "tracing",
  "tracing-subscriber",
  "windows 0.61.3",
