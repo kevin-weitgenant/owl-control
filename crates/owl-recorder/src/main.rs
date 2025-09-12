@@ -42,7 +42,7 @@ struct Args {
     stop_key: String,
 }
 
-const MAX_IDLE_DURATION: Duration = Duration::from_secs(30);
+const MAX_IDLE_DURATION: Duration = Duration::from_secs(90);
 const MAX_RECORDING_DURATION: Duration = Duration::from_secs(10 * 60);
 
 #[tokio::main]
@@ -115,7 +115,7 @@ async fn main() -> Result<()> {
                         recorder.stop().await?;
                     } else if idleness_tracker.is_idle() {
                         tracing::info!("No input detected for 5 seconds, stopping recording");
-                        recorder.stop().await?;
+                        recorder.stop().await?; 
                         start_on_activity = true;
                     } else if recording.elapsed() > MAX_RECORDING_DURATION {
                         tracing::info!("Recording duration exceeded {} s, restarting recording", MAX_RECORDING_DURATION.as_secs());
