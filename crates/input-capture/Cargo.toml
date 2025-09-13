@@ -17,9 +17,7 @@ windows = { workspace = true, features = [
 ] }
 color-eyre.workspace = true
 tokio.workspace = true
-
-[build-dependencies]
-cc = "1.0"
+gilrs.workspace = true
 
 [dev-dependencies]
 tracing-subscriber.workspace = true

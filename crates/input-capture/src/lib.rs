@@ -4,9 +4,6 @@ use tokio::sync::mpsc;
 mod raw_input;
 use raw_input::RawInput;
 
-mod directinput;
-use directinput::DirectInput;
-
 #[derive(Debug, Clone, Copy)]
 pub enum Event {
     MouseMove([i32; 2]),
@@ -42,7 +39,7 @@ pub enum PressState {
 
 pub struct InputCapture {
     _raw_input_thread: std::thread::JoinHandle<()>,
-    _directinput_thread: std::thread::JoinHandle<()>,
+    _gilrs_thread: std::thread::JoinHandle<()>,
 }
 impl InputCapture {
     pub fn new() -> Result<(Self, mpsc::Receiver<Event>)> {
@@ -61,18 +58,28 @@ impl InputCapture {
             .expect("failed to run windows message queue");
         });
 
-        let _directinput_thread = std::thread::spawn(move || {
-            let mut directinput = DirectInput::new().expect("failed to initialize directinput");
+        let _gilrs_thread = std::thread::spawn(move || {
+            let mut gilrs = gilrs::Gilrs::new().unwrap();
+
+            // Iterate over all connected gamepads
+            for (_id, gamepad) in gilrs.gamepads() {
+                println!("{} is {:?}", gamepad.name(), gamepad.power_info());
+            }
             loop {
-                directinput.update();
-                std::thread::sleep(std::time::Duration::from_millis(1));
+                // Examine new events
+                while let Some(gilrs::Event {
+                    id, event, time, ..
+                }) = gilrs.next_event_blocking(None)
+                {
+                    println!("{:?} New event from {}: {:?}", time, id, event);
+                }
             }
         });
 
         Ok((
             Self {
                 _raw_input_thread,
-                _directinput_thread,
+                _gilrs_thread,
             },
             input_rx,
         ))
