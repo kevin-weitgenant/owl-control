@@ -572,6 +572,7 @@ dependencies = [
 name = "input-capture"
 version = "0.0.0"
 dependencies = [
+ "cc",
  "color-eyre",
  "tokio",
  "tracing",
