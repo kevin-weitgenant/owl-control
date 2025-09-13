@@ -3,7 +3,6 @@ Mouse movements
 """
 
 import json
-import os
 import pandas as pd
 
 from ...constants import FPS

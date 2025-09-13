@@ -1,12 +1,8 @@
 from dotenv import load_dotenv
+
 import os
-
-load_dotenv()
-
 import tarfile
-import shutil
 import json
-from datetime import datetime
 
 from ..constants import (
     ROOT_DIR,
@@ -20,6 +16,8 @@ from ..constants import (
 from .input_utils.buttons import get_button_stats
 from .input_utils.mouse import get_mouse_stats
 from .uploader import upload_archive
+
+load_dotenv()
 
 # Directory structure might be nested, but the root dirs will always have a .mp4 and .csv
 

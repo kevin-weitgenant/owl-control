@@ -3,12 +3,10 @@ Button presses
 """
 
 import json
-import os
 import numpy as np
 import pandas as pd
 
-from ...input_tracking.keybinds import CODE_TO_KEY
-from ...constants import FPS
+from .keybinds import CODE_TO_KEY
 
 
 def get_ascii(keycode_int):
