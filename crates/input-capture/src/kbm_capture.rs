@@ -30,12 +30,12 @@ use windows::{
 
 use crate::{Event, PressState};
 
-pub struct RawInput {
+pub struct KbmCapture {
     hwnd: HWND,
     class_name: PCSTR,
     h_instance: HINSTANCE,
 }
-impl Drop for RawInput {
+impl Drop for KbmCapture {
     fn drop(&mut self) {
         unsafe {
             DestroyWindow(self.hwnd).expect("failed to destroy window");
@@ -44,7 +44,7 @@ impl Drop for RawInput {
         }
     }
 }
-impl RawInput {
+impl KbmCapture {
     pub fn initialize() -> Result<Self> {
         unsafe {
             let class_name = PCSTR(c"RawInputWindowClass".to_bytes_with_nul().as_ptr());
