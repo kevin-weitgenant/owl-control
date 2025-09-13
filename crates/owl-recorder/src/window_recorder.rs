@@ -7,6 +7,7 @@ use color_eyre::{
     Result,
     eyre::{Context, OptionExt as _},
 };
+use constants::{FPS, RECORDING_HEIGHT, RECORDING_WIDTH};
 use obws::{
     Client,
     requests::{
@@ -39,12 +40,6 @@ const OWL_PROFILE_NAME: &str = "owl_data_recorder";
 const OWL_SCENE_NAME: &str = "owl_data_collection_scene";
 const OWL_CAPTURE_NAME: &str = "owl_game_capture";
 
-// Keep in sync with vg_control/constants.py (for now!)
-const FPS: u32 = 60;
-
-// Video recording settings
-const RECORDING_WIDTH: u32 = 640;
-const RECORDING_HEIGHT: u32 = 360;
 const VIDEO_BITRATE: u32 = 2500;
 const SET_ENCODER: bool = false;
 
