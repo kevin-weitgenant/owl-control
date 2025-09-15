@@ -31,21 +31,6 @@ export class AuthService {
         // Convert stored consent value to a strict boolean
         const consentVal = result.data.hasConsented;
         this.hasConsented = consentVal === true || consentVal === "true";
-      } else {
-        // Try to load from localStorage as fallback
-        const storedKey = localStorage.getItem("apiKey");
-        const storedConsent = localStorage.getItem("hasConsented");
-
-        if (storedKey) {
-          this.apiKey = storedKey;
-          this.hasConsented = storedConsent === "true";
-
-          // Save to secure storage
-          await ElectronService.saveCredentials("apiKey", storedKey);
-          if (this.hasConsented) {
-            await ElectronService.saveCredentials("hasConsented", "true");
-          }
-        }
       }
     } catch (error) {
       console.error("Error loading API key:", error);
@@ -98,13 +83,6 @@ export class AuthService {
       // Save to secure storage
       await ElectronService.saveCredentials("apiKey", apiKey);
 
-      // Also save to localStorage as fallback
-      try {
-        localStorage.setItem("apiKey", apiKey);
-      } catch (error) {
-        console.error("Error saving API key to localStorage:", error);
-      }
-
       return { success: true };
     } catch (error) {
       console.error("API key validation error:", error);
@@ -123,13 +101,6 @@ export class AuthService {
       "hasConsented",
       hasConsented ? "true" : "false",
     );
-
-    // Also save to localStorage as fallback
-    try {
-      localStorage.setItem("hasConsented", hasConsented ? "true" : "false");
-    } catch (error) {
-      console.error("Error saving consent status to localStorage:", error);
-    }
   }
 
   /**

@@ -201,7 +201,6 @@ function createSettingsWindow() {
     `);
   });
 
-  // Set credentials directly in localStorage after content is fully loaded
   settingsWindow.webContents.once("did-finish-load", () => {
     // Restore the original full CSS with detailed styling
     const css = `
@@ -303,9 +302,6 @@ function createSettingsWindow() {
     settingsWindow!.webContents
       .executeJavaScript(
         `
-      // Set credentials directly in localStorage
-      localStorage.setItem('apiKey', '${secureStore.credentials.apiKey || ""}');
-      localStorage.setItem('hasConsented', 'true');
       document.documentElement.classList.add('dark');
 
       // Force dark theme using body class as well
