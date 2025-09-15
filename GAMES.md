@@ -2,7 +2,10 @@
 
 We want data from these games first and foremost. Other first- and third-person games are acceptable, but check in with us if possible.
 
-`FP` below refers to "first person". We are primarily looking for first-person data.
+`FP` below refers to "first person". We are primarily looking for first-person data.  
+
+The ideal game is FP, high quality/detail level and action packed (lots of stuff happening, not nessecarily fighting).  
+We will only be buying games that are ideal/preferred to control data mixture.
 
 # Wanted games
 
