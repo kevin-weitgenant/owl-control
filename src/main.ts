@@ -7,6 +7,8 @@ import {
   Menu,
   nativeImage,
   shell,
+  MenuItem,
+  MenuItemConstructorOptions,
 } from "electron";
 import * as path from "path";
 import * as fs from "fs";
@@ -195,7 +197,7 @@ function createSettingsWindow() {
   // Set up DOM ready handler to apply CSS immediately
   settingsWindow.webContents.on("dom-ready", () => {
     // Apply simple CSS to prevent white flash during load
-    settingsWindow.webContents.insertCSS(`
+    settingsWindow!.webContents.insertCSS(`
       html, body { background-color: #0c0c0f !important; }
       #root { background-color: #0c0c0f !important; }
     `);
@@ -210,9 +212,9 @@ function createSettingsWindow() {
         background-color: #0c0c0f !important;
         color: #f8f9fa !important;
       }
-      
+
       /* Fix black box issues - make text containers transparent */
-      h1, h2, h3, h4, h5, h6, p, span, label, a, 
+      h1, h2, h3, h4, h5, h6, p, span, label, a,
       div.text-sm, div.text-muted-foreground, div.flex.items-center {
         background-color: transparent !important;
       }
@@ -236,60 +238,60 @@ function createSettingsWindow() {
         color: #0c0c0f !important;
         border: none !important;
       }
-      
+
       /* Primary button styling */
       button[class*="primary"], [role="button"][class*="primary"], .btn-primary, .button-primary {
         background-color: hsl(186, 90%, 61%) !important;
         color: #0c0c0f !important;
         border: none !important;
       }
-      
+
       /* Button variants */
       [class*="btn-secondary"], [class*="btn-outline"], [class*="ghost"] {
         background-color: transparent !important;
         border-color: #2a2d35 !important;
         color: #f8f9fa !important;
       }
-      
+
       /* Form inputs */
       input, select, textarea, [type="text"], [type="password"], [type="email"], [class*="input"] {
         background-color: #1f2028 !important;
         border-color: #2a2d35 !important;
         color: #f8f9fa !important;
       }
-      
+
       /* Text colors */
       p, h1, h2, h3, h4, h5, h6, span, label {
         color: #f8f9fa !important;
       }
-      
+
       /* Tailwind specific text classes */
       [class*="text-"], [class*="text-muted"] {
         color: #f8f9fa !important;
       }
-      
+
       /* Secondary text */
       [class*="text-muted"], [class*="text-secondary"] {
         color: #a0aec0 !important;
       }
-      
+
       /* Fix any potential black boxes around titles and text content */
       [class*="card-header"], [class*="card-title"], [class*="card-description"],
       .text-sm, .text-muted-foreground, .col-span-2, .flex.items-center,
       p.text-sm, div.text-sm, .space-y-2, .space-y-4 {
         background-color: transparent !important;
       }
-      
+
       /* Fix black boxes around specific elements */
       .col-span-2 *, div.flex.items-center *, .rounded-lg.border.p-4 * {
         background-color: transparent !important;
       }
-      
+
       /* Fix any specific components */
       .fixed.inset-0.bg-background\\/80.backdrop-blur-sm.z-50 {
         background-color: rgba(12, 12, 15, 0.8) !important;
       }
-      
+
       /* Ensure all UI components are dark */
       .bg-background, .bg-card, [class*="muted"], [class*="popover"] {
         background-color: #13151a !important;
@@ -297,24 +299,24 @@ function createSettingsWindow() {
     `;
 
     // Inject CSS first
-    settingsWindow.webContents.insertCSS(css);
+    settingsWindow!.webContents.insertCSS(css);
 
     // First set credentials to ensure auth works
-    settingsWindow.webContents
+    settingsWindow!.webContents
       .executeJavaScript(
         `
       // Set credentials directly in localStorage
       localStorage.setItem('apiKey', '${secureStore.credentials.apiKey || ""}');
       localStorage.setItem('hasConsented', 'true');
       document.documentElement.classList.add('dark');
-      
+
       // Force dark theme using body class as well
       document.body.classList.add('dark-theme');
-      
+
       // Set a global variable to tell React to show settings
       window.DIRECT_SETTINGS = true;
       window.SKIP_AUTH = true;
-      
+
       // We're ready to show the window now
       true; // Return value for promise
     `,
@@ -428,7 +430,7 @@ function createTray() {
 function updateTrayMenu() {
   if (!tray) return;
 
-  const menuTemplate = [];
+  const menuTemplate: (MenuItemConstructorOptions | MenuItem)[] = [];
 
   // Add status item
   menuTemplate.push({

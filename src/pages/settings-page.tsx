@@ -54,7 +54,7 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
       // When opened directly from system tray, load credentials directly from Electron
       try {
         const { ipcRenderer } = window.require("electron");
-        ipcRenderer.invoke("load-credentials").then((result) => {
+        ipcRenderer.invoke("load-credentials").then((result: any) => {
           if (result.success && result.data) {
             // Update auth service with the credentials
             const authService = AuthService.getInstance();
