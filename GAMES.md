@@ -10,8 +10,10 @@ You may have heard that we are offering to buy games for people so long as they 
 The caveat with this is that we are choosing which games to buy to control the data mixture. We will only buy *preferred games*. While you can use the list below as reference, this refers to games that are:  
 - First Person  
 - High Quality/Detail (Need not be AAA/new, i.e. Crysis 3)  
-- Action Packed (Doesn't need to be fighting, just lots of events happening beyond moving/looking around)  
+- Action Packed (Doesn't need to be fighting, just lots of events happening beyond moving/looking around)
+  
 If you would like a game that fits these criteria and are willing to collect data for it, let us know and we can get you a key!  
+
 Note that not all games in the below list nessecarily meet the above criteria, and that failing to meet this criteria does not make a game "bad data"
 
 # Wanted games
