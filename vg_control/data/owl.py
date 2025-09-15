@@ -56,18 +56,17 @@ def validate_video_metadata(vid_path, meta_path) -> list[str]:
     return invalid_reasons
 
 
-def validate_kbm_inputs(csv_path) -> tuple[list[str], dict]:
+def validate_keyboard_inputs(csv_path) -> tuple[list[str], dict]:
     """
-    Validate keyboard and mouse inputs.
+    Validate keyboard inputs.
 
     Returns:
         - List of reasons for invalidity (empty if valid)
-        - Dictionary of input statistics
+        - Dictionary of keyboard statistics
     """
     invalid_reasons = []
 
     btn_stats = get_button_stats(csv_path)
-    mouse_stats = get_mouse_stats(csv_path)
 
     # Filter out samples with too little keyboard activity
     if (
@@ -82,6 +81,29 @@ def validate_kbm_inputs(csv_path) -> tuple[list[str], dict]:
             f"Too few keyboard events: {btn_stats['total_keyboard_events']}"
         )
 
+    # Keyboard stats
+    keyboard_stats = {
+        "wasd_apm": btn_stats["wasd_apm"],
+        "unique_keys": btn_stats["unique_keys"],
+        "button_diversity": btn_stats["button_diversity"],
+        "total_keyboard_events": btn_stats["total_keyboard_events"],
+    }
+
+    return invalid_reasons, keyboard_stats
+
+
+def validate_mouse_inputs(csv_path) -> tuple[list[str], dict]:
+    """
+    Validate mouse inputs.
+
+    Returns:
+        - List of reasons for invalidity (empty if valid)
+        - Dictionary of mouse statistics
+    """
+    invalid_reasons = []
+
+    mouse_stats = get_mouse_stats(csv_path)
+
     # Filter out samples with abnormal mouse behavior
     if mouse_stats["overall_max"] < 0.05:  # Very little mouse movement
         invalid_reasons.append(
@@ -93,12 +115,8 @@ def validate_kbm_inputs(csv_path) -> tuple[list[str], dict]:
             f"Mouse movement too large: {mouse_stats['overall_max']:.1f}"
         )
 
-    # Combine stats
-    input_stats = {
-        "wasd_apm": btn_stats["wasd_apm"],
-        "unique_keys": btn_stats["unique_keys"],
-        "button_diversity": btn_stats["button_diversity"],
-        "total_keyboard_events": btn_stats["total_keyboard_events"],
+    # Mouse stats
+    mouse_input_stats = {
         "mouse_movement_std": mouse_stats["overall_std"],
         "mouse_x_std": mouse_stats["x_std"],
         "mouse_y_std": mouse_stats["y_std"],
@@ -107,7 +125,7 @@ def validate_kbm_inputs(csv_path) -> tuple[list[str], dict]:
         "mouse_max_y": mouse_stats["max_y"],
     }
 
-    return invalid_reasons, input_stats
+    return invalid_reasons, mouse_input_stats
 
 
 def validate_gamepad_inputs(csv_path) -> tuple[list[str], dict]:
@@ -169,14 +187,23 @@ def filter_invalid_sample(vid_path, csv_path, meta_path) -> list[str]:
     metadata_reasons = validate_video_metadata(vid_path, meta_path)
     invalid_reasons.extend(metadata_reasons)
 
-    # Validate KBM inputs
-    kbm_reasons, kbm_stats = validate_kbm_inputs(csv_path)
+    # Validate keyboard inputs
+    keyboard_reasons, keyboard_stats = validate_keyboard_inputs(csv_path)
+
+    # Validate mouse inputs
+    mouse_reasons, mouse_stats = validate_mouse_inputs(csv_path)
 
     # Validate gamepad inputs
     gamepad_reasons, gamepad_stats = validate_gamepad_inputs(csv_path)
 
-    if len(kbm_reasons) > 0 and len(gamepad_reasons) > 0:
-        invalid_reasons.extend(kbm_reasons)
+    # Only invalidate if all three input types are invalid
+    if (
+        len(keyboard_reasons) > 0
+        and len(mouse_reasons) > 0
+        and len(gamepad_reasons) > 0
+    ):
+        invalid_reasons.extend(keyboard_reasons)
+        invalid_reasons.extend(mouse_reasons)
         invalid_reasons.extend(gamepad_reasons)
 
     # Add stats to metadata
@@ -185,7 +212,8 @@ def filter_invalid_sample(vid_path, csv_path, meta_path) -> list[str]:
 
     extra_metadata = {
         "input_stats": {
-            **kbm_stats,
+            **keyboard_stats,
+            **mouse_stats,
             **gamepad_stats,
         }
     }
