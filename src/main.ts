@@ -128,6 +128,7 @@ function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 440,
     height: 380,
+    autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -135,22 +136,18 @@ function createMainWindow() {
     },
     frame: true,
     transparent: false,
-    resizable: false,
+    resizable: true,
     fullscreenable: false,
     minimizable: true,
-    maximizable: false,
+    maximizable: true,
     backgroundColor: "#0c0c0f",
     center: true,
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
+    title: "OWL Control",
   });
 
   // Load index.html
   mainWindow.loadFile(path.join(__dirname, "index.html"));
-
-  // Open DevTools in development
-  if (process.env.NODE_ENV === "development") {
-    mainWindow.webContents.openDevTools();
-  }
 
   mainWindow.on("closed", () => {
     mainWindow = null;
@@ -168,22 +165,23 @@ function createSettingsWindow() {
   settingsWindow = new BrowserWindow({
     width: 800,
     height: 630,
+    autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
       preload: path.join(__dirname, "preload.js"),
     },
     parent: mainWindow || undefined,
-    modal: false, // Allow independent movement
-    show: false, // Hide until ready to show
-    backgroundColor: "#0c0c0f", // Dark background color
-    resizable: false, // Prevent resizing
-    fullscreenable: false, // Prevent fullscreen
-    minimizable: true, // Allow minimize
-    maximizable: false, // Prevent maximize
-    frame: true, // Keep the frame for window controls
-    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default", // macOS style
-    title: "OWL Control Settings", // Window title
+    modal: false,
+    show: false,
+    backgroundColor: "#0c0c0f",
+    resizable: true,
+    fullscreenable: false,
+    minimizable: true,
+    maximizable: true,
+    frame: true,
+    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
+    title: "OWL Control",
   });
 
   // Directly load settings page with query parameters - single load
