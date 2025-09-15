@@ -10,35 +10,6 @@ import time
 from ..constants import API_BASE_URL
 
 
-def _get_upload_url(
-    api_key: str,
-    archive_path: str,
-    tags: Optional[List[str]] = None,
-    base_url: str = API_BASE_URL,
-) -> str:
-    """Request a pre-signed S3 URL for uploading a tar archive."""
-
-    file_size_mb = os.path.getsize(archive_path) // (1024 * 1024)
-    payload = {
-        "filename": os.path.basename(archive_path),
-        "content_type": "application/x-tar",
-        "file_size_mb": file_size_mb,
-        "expiration": 3600,
-        "uploader_hwid": get_hwid(),
-        "upload_timestamp": datetime.now().isoformat(),
-    }
-    if tags:
-        payload["tags"] = tags
-
-    headers = {"Content-Type": "application/json", "X-API-Key": api_key}
-    url = f"{base_url}/tracker/upload/game_control"
-
-    response = requests.post(url, headers=headers, json=payload, timeout=30)
-    response.raise_for_status()
-    data = response.json()
-    return data.get("url") or data.get("upload_url") or data["uploadUrl"]
-
-
 def get_upload_url(
     api_key: str,
     archive_path: str,
