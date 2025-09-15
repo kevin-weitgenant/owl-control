@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
-import { ThemeProvider } from "./components/theme-provider";
 import { ApiKeyPage } from "./pages/api-key-page";
 import { ConsentPage } from "./pages/consent-page";
 import { SettingsPage } from "./pages/settings-page";
@@ -125,10 +124,10 @@ const App = () => {
         --secondary: 157 74% 67%;
         --secondary-foreground: 240 12% 5%;
       }
-      
+
       /* Force ALL button components to use correct colors */
-      button, 
-      [role="button"], 
+      button,
+      [role="button"],
       [type="button"],
       .Button,
       [class*="Button"],
@@ -144,7 +143,7 @@ const App = () => {
         animation: none !important;
         animation-fill-mode: none !important;
       }
-      
+
       /* Extra specific button selectors */
       html body #root button,
       html body #root [role="button"],
@@ -163,13 +162,13 @@ const App = () => {
         transition: none !important;
         animation: none !important;
       }
-      
+
       /* Fix any specificity issues with Tailwind */
-      .bg-primary, 
-      .bg-\\[hsl\\(186, 
-      [class*="bg-primary"], 
-      [class*="bg-\\[hsl\\(186"], 
-      .Button, 
+      .bg-primary,
+      .bg-\\[hsl\\(186,
+      [class*="bg-primary"],
+      [class*="bg-\\[hsl\\(186"],
+      .Button,
       button.Button {
         background-color: hsl(186, 90%, 61%) !important;
         color: #0c0c0f !important;
@@ -177,43 +176,43 @@ const App = () => {
         visibility: visible !important;
         display: inline-block !important;
       }
-      
+
       /* Hover effects */
-      button:hover, 
-      [role="button"]:hover, 
+      button:hover,
+      [role="button"]:hover,
       [type="button"]:hover,
       .Button:hover {
         background-color: hsl(186, 90%, 55%) !important;
       }
-      
+
       /* Special hover effects for the glowing buttons */
-      button.glow:hover, 
+      button.glow:hover,
       button.button-shine:hover {
         background-color: hsl(186, 90%, 55%) !important;
         box-shadow: 0 0 15px rgba(66, 226, 245, 0.5) !important;
         transform: translateY(-1px) !important;
       }
-      
+
       /* Active state */
-      button:active, 
-      [role="button"]:active, 
+      button:active,
+      [role="button"]:active,
       [type="button"]:active {
         transform: translateY(1px) !important;
       }
-      
+
       /* Dark background for cards */
       [class*="rounded-lg"], [class*="border"], [class*="shadow"], [class*="p-"], [class*="bg-popover"],
       [class*="bg-card"], [class*="card"] {
         background-color: #13151a !important;
         border-color: #2a2d35 !important;
       }
-      
+
       /* Force dark background for root elements */
       html, body, #root {
         background-color: #0c0c0f !important;
         color: #f8f9fa !important;
       }
-      
+
       /* Aurora background effect */
       body::before {
         content: '';
@@ -224,19 +223,19 @@ const App = () => {
         bottom: 0;
         z-index: -1;
         background: linear-gradient(
-          90deg, 
-          transparent 0%, 
-          rgba(66, 226, 245, 0.015) 15%, 
-          rgba(77, 206, 129, 0.02) 30%, 
-          transparent 50%, 
-          rgba(66, 226, 245, 0.015) 70%, 
-          rgba(77, 206, 129, 0.02) 85%, 
+          90deg,
+          transparent 0%,
+          rgba(66, 226, 245, 0.015) 15%,
+          rgba(77, 206, 129, 0.02) 30%,
+          transparent 50%,
+          rgba(66, 226, 245, 0.015) 70%,
+          rgba(77, 206, 129, 0.02) 85%,
           transparent 100%
         );
         opacity: 0.7;
         animation: aurora 20s linear infinite;
       }
-      
+
       @keyframes aurora {
         0% { background-position: 0% 0%; }
         100% { background-position: 100% 0%; }
@@ -259,30 +258,22 @@ const App = () => {
     }
 
     // Render only settings - no auth layer
-    return React.createElement(
-      ThemeProvider,
-      { defaultTheme: "dark" },
-      React.createElement(SettingsPage, { onClose: handleCloseSettings }),
-    );
+    return React.createElement(SettingsPage, { onClose: handleCloseSettings });
   }
 
   // Render the appropriate UI based on authentication state
-  return React.createElement(
-    ThemeProvider,
-    { defaultTheme: "dark" },
-    !authenticated
-      ? showConsent
-        ? React.createElement(ConsentPage, {
-            apiKey: pendingApiKey,
-            onConsent: handleConsent,
-            onCancel: handleCancelConsent,
-          })
-        : React.createElement(ApiKeyPage, {
-            onApiKeySuccess: handleApiKeySuccess,
-            onShowConsent: handleShowConsent,
-          })
-      : React.createElement(SettingsPage, { onClose: handleCloseSettings }),
-  );
+  return !authenticated
+    ? showConsent
+      ? React.createElement(ConsentPage, {
+          apiKey: pendingApiKey,
+          onConsent: handleConsent,
+          onCancel: handleCancelConsent,
+        })
+      : React.createElement(ApiKeyPage, {
+          onApiKeySuccess: handleApiKeySuccess,
+          onShowConsent: handleShowConsent,
+        })
+    : React.createElement(SettingsPage, { onClose: handleCloseSettings });
 };
 
 const root = createRoot(document.getElementById("root"));
