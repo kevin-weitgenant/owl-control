@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 // import { Logo } from '@/components/logo';
 import {
   Card,
@@ -44,47 +44,7 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
   const authService = AuthService.getInstance();
   const pythonBridge = new PythonBridge();
 
-  // Load preferences on component mount
-  useEffect(() => {
-    // Direct loading of credentials from Electron
-    const isSettingsDirectNavigation =
-      window.location.search.includes("page=settings");
-
-    if (isSettingsDirectNavigation) {
-      // When opened directly from system tray, load credentials directly from Electron
-      try {
-        const { ipcRenderer } = window.require("electron");
-        ipcRenderer.invoke("load-credentials").then((result: any) => {
-          if (result.success && result.data) {
-            // Update auth service with the credentials
-            const authService = AuthService.getInstance();
-            if (result.data.apiKey) {
-              authService.validateApiKey(result.data.apiKey);
-            }
-            if (result.data.hasConsented === "true") {
-              authService.setConsent(true);
-            }
-
-            // Now load user info
-            loadUserInfo();
-          }
-        });
-      } catch (error) {
-        console.error("Error loading credentials from Electron:", error);
-      }
-    }
-
-    // Load preferences
-    const prefs = pythonBridge.loadPreferences();
-    if (prefs.startRecordingKey) setStartRecordingKey(prefs.startRecordingKey);
-    if (prefs.stopRecordingKey) setStopRecordingKey(prefs.stopRecordingKey);
-    if (prefs.apiToken) setApiToken(prefs.apiToken);
-
-    // Always load user info after preferences
-    loadUserInfo();
-  }, []);
-
-  const loadUserInfo = async () => {
+  const loadUserInfo = useCallback(async () => {
     try {
       // Check if we're in direct settings mode
       if (
@@ -115,7 +75,19 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
     } catch (error) {
       console.error("Error loading user info:", error);
     }
-  };
+  }, [authService, setUserInfo]);
+
+  // Load preferences on component mount
+  useEffect(() => {
+    // Load preferences
+    const prefs = pythonBridge.loadPreferences();
+    if (prefs.startRecordingKey) setStartRecordingKey(prefs.startRecordingKey);
+    if (prefs.stopRecordingKey) setStopRecordingKey(prefs.stopRecordingKey);
+    if (prefs.apiToken) setApiToken(prefs.apiToken);
+
+    // Always load user info after preferences
+    loadUserInfo();
+  }, [loadUserInfo]);
 
   const savePreferences = () => {
     pythonBridge.savePreferences({
