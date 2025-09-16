@@ -307,10 +307,6 @@ function createSettingsWindow() {
       // Force dark theme using body class as well
       document.body.classList.add('dark-theme');
 
-      // Set a global variable to tell React to show settings
-      window.DIRECT_SETTINGS = true;
-      window.SKIP_AUTH = true;
-
       // We're ready to show the window now
       true; // Return value for promise
     `,

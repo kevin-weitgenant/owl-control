@@ -1,6 +1,19 @@
 import { API_BASE_URL } from "./constants";
 import { ElectronService } from "./electron-service";
 
+export type UserInfo =
+  | {
+      authenticated: true;
+      hasApiKey: boolean;
+      hasConsented: boolean;
+      method: string;
+      apiKey: string;
+      userId: string;
+    }
+  | {
+      authenticated: false;
+    };
+
 export class AuthService {
   private static instance: AuthService;
   private apiKey: string | null = null;
@@ -43,13 +56,6 @@ export class AuthService {
    * Check if user is authenticated and has consented
    */
   public isAuthenticated(): boolean {
-    // Check if we're in direct settings mode (from Electron)
-    if (
-      (window as any).SKIP_AUTH === true ||
-      (window as any).DIRECT_SETTINGS === true
-    ) {
-      return true;
-    }
     return !!this.apiKey && this.hasConsented;
   }
 
@@ -85,6 +91,7 @@ export class AuthService {
         },
       });
       if (!rawResponse.ok) {
+        console.log("validateApiKey: rawResponse", rawResponse);
         return {
           success: false,
           message:
@@ -94,6 +101,7 @@ export class AuthService {
 
       const response: { userId: string } = await rawResponse.json();
 
+      console.log("validateApiKey: response", response);
       // Store the API key
       this.apiKey = apiKey;
       this.userId = response.userId;
@@ -124,27 +132,24 @@ export class AuthService {
   /**
    * Get user information
    */
-  public async getUserInfo(): Promise<
-    | {
-        authenticated: true;
-        hasApiKey: boolean;
-        hasConsented: boolean;
-        method: string;
-        apiKey: string;
-        userId: string;
-      }
-    | { authenticated: false }
-  > {
-    if (!this.apiKey) {
-      return { authenticated: false };
-    }
-
+  public async getUserInfo(): Promise<UserInfo> {
     // Apologies for the very messy control flow here; I'm trying to make
     // the fewest changes possible to get this working, as this will all
     // hopefully be replaced in the future.
+    if (!this.apiKey) {
+      await this.loadApiKey();
+    }
+
+    if (!this.apiKey) {
+      // We still don't have an API key, so we can't be authenticated
+      console.log("getUserInfo: No API key found");
+      return { authenticated: false };
+    }
+
     let userId = this.userId;
     if (!userId) {
       const validationResult = await this.validateApiKey(this.apiKey);
+      console.log("getUserInfo: validationResult", validationResult);
       if (validationResult.success) {
         userId = validationResult.userId;
       } else {

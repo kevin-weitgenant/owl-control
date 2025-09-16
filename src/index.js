@@ -25,15 +25,6 @@ const App = () => {
 
   // Check if authenticated on load and handle direct navigation
   useEffect(() => {
-    // Check if we're in direct settings mode from Electron
-    if (window.SKIP_AUTH === true || window.DIRECT_SETTINGS === true) {
-      console.log("Direct settings mode detected - skipping auth check");
-      // Force authenticated state and show settings
-      setAuthenticated(true);
-      setShowSettings(true);
-      return;
-    }
-
     // Regular authentication check
     const isAuth = authService.isAuthenticated();
     setAuthenticated(isAuth);
@@ -91,9 +82,7 @@ const App = () => {
   const isSettingsDirectNavigation =
     window.location.search.includes("page=settings") ||
     window.location.search.includes("direct=true") ||
-    window.location.hash === "#settings" ||
-    window.SKIP_AUTH === true ||
-    window.DIRECT_SETTINGS === true;
+    window.location.hash === "#settings";
 
   // Create an early detection/debug function
   useEffect(() => {
