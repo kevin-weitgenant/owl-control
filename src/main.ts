@@ -342,9 +342,9 @@ function createTray() {
 
     // First, fill the entire buffer with cyan (background)
     for (let i = 0; i < trayIconBuffer.length; i += 4) {
-      trayIconBuffer[i] = cyan.r; // R
+      trayIconBuffer[i] = cyan.b; // B
       trayIconBuffer[i + 1] = cyan.g; // G
-      trayIconBuffer[i + 2] = cyan.b; // B
+      trayIconBuffer[i + 2] = cyan.r; // R
       trayIconBuffer[i + 3] = cyan.a; // A
     }
 
@@ -375,9 +375,9 @@ function createTray() {
           // Calculate position in buffer (4 bytes per pixel)
           const pos = (y * size.width + x) * 4;
           // Set the dark pixel for text
-          trayIconBuffer[pos] = dark.r; // R
+          trayIconBuffer[pos] = dark.b; // B
           trayIconBuffer[pos + 1] = dark.g; // G
-          trayIconBuffer[pos + 2] = dark.b; // B
+          trayIconBuffer[pos + 2] = dark.r; // R
           trayIconBuffer[pos + 3] = dark.a; // A
         }
       }
