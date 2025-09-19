@@ -1,0 +1,14 @@
+Error during upload: Upload failed with return code 2
+
+Traceback:
+Traceback (most recent call last):
+  File "F:\owl-control\vg_control\upload_bridge.py", line 25, in main
+    upload_all_files(token, progress_mode=progress_mode)
+  File "F:\owl-control\vg_control\data\owl.py", line 348, in upload_all_files
+    has_files = manager.process_individual_sessions()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\owl-control\vg_control\data\owl.py", line 316, in process_individual_sessions
+    upload_archive(
+  File "F:\owl-control\vg_control\data\uploader.py", line 268, in upload_archive
+    raise Exception(f"Upload failed with return code {return_code}")
+Exception: Upload failed with return code 2

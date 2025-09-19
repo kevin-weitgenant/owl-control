@@ -31,7 +31,7 @@ def get_upload_url(
         "filename": os.path.basename(archive_path),
         "content_type": "application/x-tar",
         "file_size_mb": file_size_mb,
-        "expiration": 3600,
+        "expiration": 14400,
         "uploader_hwid": get_hwid(),
         "upload_timestamp": datetime.now().isoformat(),
     }
@@ -157,7 +157,39 @@ def upload_archive(
             print(f"PROGRESS: {json.dumps(progress_data)}")
 
     # Use -# for a simpler progress indicator that's easier to parse
-    curl_command = f'curl -X PUT "{upload_url}" -k -H "Content-Type: application/x-tar" -T "{archive_path}" -# -m 1200'
+    # Build curl args explicitly for Windows compatibility; avoid shlex splitting
+    # Harden upload with longer timeouts, HTTP/1.1, disabled Expect: 100-continue, keepalives, retries, and slow-speed detection
+    curl_args = [
+        "curl",
+        "-X",
+        "PUT",
+        f"{upload_url}",
+        "-k",
+        "-H",
+        "Content-Type: application/x-tar",
+        "-H",
+        "Expect:",
+        "--http1.1",
+        "--keepalive-time",
+        "60",
+        "--connect-timeout",
+        "30",
+        "--max-time",
+        "5400",
+        "--retry",
+        "3",
+        "--retry-delay",
+        "2",
+        # Use numeric bytes/sec for maximum compatibility (102400 = 100 KB/s)
+        "--speed-limit",
+        "102400",
+        "--speed-time",
+        "120",
+        "-T",
+        f"{archive_path}",
+        "-#",
+        "--no-buffer",
+    ]
 
     # Debug: log the upload URL (hide sensitive parts)
     from urllib.parse import urlparse
@@ -181,7 +213,7 @@ def upload_archive(
 
     with tqdm(total=file_size, unit="B", unit_scale=True, desc="Uploading") as pbar:
         process = subprocess.Popen(
-            shlex.split(curl_command),
+            curl_args,
             stderr=subprocess.PIPE,
             bufsize=1,  # Line buffered
             universal_newlines=True,
@@ -191,6 +223,7 @@ def upload_archive(
         start_time = time.time() if progress_mode else 0
 
         # Read curl's progress output
+        stderr_tail = []  # Keep last ~100 lines for diagnostics
         while True:
             line = process.stderr.readline()
             if not line:
@@ -221,6 +254,10 @@ def upload_archive(
                         last_update = current
                 except:
                     continue
+            # Maintain a tail buffer for error diagnostics
+            stderr_tail.append(line.rstrip("\n"))
+            if len(stderr_tail) > 100:
+                stderr_tail.pop(0)
 
         # Wait for process to complete
         return_code = process.wait()
@@ -252,7 +289,69 @@ def upload_archive(
                 print(f"Warning: Could not write final progress: {e}")
 
         if return_code != 0:
-            raise Exception(f"Upload failed with return code {return_code}")
+            # Append tail of stderr to debug log to help diagnose e.g. unknown options (exit 2)
+            try:
+                with open(debug_log_path, "a") as debug_file:
+                    debug_file.write(
+                        f"[{datetime.now().isoformat()}] CURL exited {return_code}. Last stderr lines:\n"
+                    )
+                    for ln in stderr_tail[-20:]:
+                        debug_file.write(f"    {ln}\n")
+            except:
+                pass
+
+            # Fallback: retry once with minimal, broadly compatible curl flags
+            minimal_args = [
+                "curl",
+                "-X",
+                "PUT",
+                f"{upload_url}",
+                "-H",
+                "Content-Type: application/x-tar",
+                "-H",
+                "Expect:",
+                "--http1.1",
+                "-T",
+                f"{archive_path}",
+                "-#",
+            ]
+
+            try:
+                with open(debug_log_path, "a") as debug_file:
+                    debug_file.write(
+                        f"[{datetime.now().isoformat()}] Retrying upload with minimal curl flags...\n"
+                    )
+            except:
+                pass
+
+            process2 = subprocess.Popen(
+                minimal_args,
+                stderr=subprocess.PIPE,
+                bufsize=1,
+                universal_newlines=True,
+            )
+
+            stderr_tail2 = []
+            while True:
+                line2 = process2.stderr.readline()
+                if not line2:
+                    break
+                stderr_tail2.append(line2.rstrip("\n"))
+                if len(stderr_tail2) > 100:
+                    stderr_tail2.pop(0)
+
+            return_code2 = process2.wait()
+            if return_code2 != 0:
+                try:
+                    with open(debug_log_path, "a") as debug_file:
+                        debug_file.write(
+                            f"[{datetime.now().isoformat()}] Fallback CURL exited {return_code2}. Last stderr lines:\n"
+                        )
+                        for ln in stderr_tail2[-20:]:
+                            debug_file.write(f"    {ln}\n")
+                except:
+                    pass
+                raise Exception(f"Upload failed with return code {return_code2}")
 
 
 def get_hwid():
